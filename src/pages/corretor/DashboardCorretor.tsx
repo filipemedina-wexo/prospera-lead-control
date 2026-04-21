@@ -61,7 +61,7 @@ export function DashboardCorretor() {
     return (
         <div className="space-y-6">
             {/* Hero de boas-vindas */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand to-brand/70 p-6 text-white shadow-lg">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-accent via-brand to-emerald-400 p-6 text-white shadow-lg shadow-brand/20">
                 <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.3)_1px,transparent_0)] bg-[length:24px_24px]" />
                 <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
@@ -94,7 +94,7 @@ export function DashboardCorretor() {
                         <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Leads Ativos</p>
                         <Zap size={16} className="text-brand" />
                     </div>
-                    <p className="text-3xl font-bold">{leadsAtivos}</p>
+                    <p className="text-3xl font-light">{leadsAtivos}</p>
                     <p className="text-xs text-text-muted mt-1">em atendimento</p>
                 </Card>
                 <Card className="p-4">
@@ -102,7 +102,7 @@ export function DashboardCorretor() {
                         <p className="text-xs text-text-muted font-medium uppercase tracking-wider">SLA Médio</p>
                         <Clock size={16} className={slaMediaMin > 10 ? 'text-red-500' : 'text-green-500'} />
                     </div>
-                    <p className={`text-3xl font-bold ${slaMediaMin > 10 ? 'text-red-500' : ''}`}>{slaMediaMin}m</p>
+                    <p className={`text-3xl font-light ${slaMediaMin > 10 ? 'text-red-500' : ''}`}>{slaMediaMin}m</p>
                     <p className={`text-xs mt-1 ${slaEstourados > 0 ? 'text-red-400' : 'text-text-muted'}`}>
                         {slaEstourados > 0 ? `${slaEstourados} SLA estourado${slaEstourados > 1 ? 's' : ''}` : 'Dentro do limite'}
                     </p>
@@ -112,7 +112,7 @@ export function DashboardCorretor() {
                         <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Visitas Marcadas</p>
                         <Calendar size={16} className="text-violet-500" />
                     </div>
-                    <p className="text-3xl font-bold">{visitasMarcadas}</p>
+                    <p className="text-3xl font-light">{visitasMarcadas}</p>
                     <p className="text-xs text-text-muted mt-1">{visitasHoje.length > 0 ? `${visitasHoje.length} hoje` : 'nenhuma hoje'}</p>
                 </Card>
                 <Card className="p-4">
@@ -120,79 +120,89 @@ export function DashboardCorretor() {
                         <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Taxa de Conversão</p>
                         <TrendingUp size={16} className="text-green-500" />
                     </div>
-                    <p className="text-3xl font-bold">{taxaConversao}%</p>
+                    <p className="text-3xl font-light">{taxaConversao}%</p>
                     <p className="text-xs text-text-muted mt-1">{vendas} venda{vendas !== 1 ? 's' : ''} no período</p>
                 </Card>
             </div>
 
-            {/* Campanha Ativa */}
-            <CampaignWidget
-                campanha={campanhaMock}
-                currentPontos={pontos}
-                enterpriseName="Residencial Aurora"
-                developerName="Construtora Horizonte"
-            />
+            {/* Corpo 2 colunas em desktop */}
+            <div className="lg:grid lg:grid-cols-3 lg:gap-6 space-y-6 lg:space-y-0">
 
-            {/* Visitas de Hoje + Meta Semanal */}
-            {visitasHoje.length > 0 && (
-                <Card className="p-5">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Calendar size={18} className="text-violet-500" />
-                        <h3 className="font-bold text-base">Visitas de Hoje</h3>
-                        <span className="text-xs bg-violet-50 text-violet-600 font-bold px-2 py-0.5 rounded-full">{visitasHoje.length}</span>
+                {/* Coluna principal (2/3): ações e leads */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Leads Prioritários */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <AlertCircle size={18} className="text-red-500" />
+                            <h3 className="font-semibold text-base">Leads que Precisam de Atenção</h3>
+                        </div>
+                        <PriorityLeadList />
                     </div>
-                    <div className="space-y-3">
-                        {visitasHoje.map(lead => (
-                            <div key={lead.id} className="flex items-center justify-between p-3 rounded-xl bg-violet-50/50 border border-violet-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-xs font-bold text-violet-700">
-                                        {lead.nome.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-sm">{lead.nome}</p>
-                                        <p className="text-xs text-text-muted">
-                                            {lead.dataVisita ? new Date(lead.dataVisita).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
-            )}
 
-            {/* Meta Semanal */}
-            <Card className="p-5">
-                <div className="flex items-center gap-2 mb-4">
-                    <Target size={18} className="text-brand" />
-                    <h3 className="font-bold text-base">Meta Semanal</h3>
+                    {/* Meta Semanal */}
+                    <Card className="p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Target size={18} className="text-brand" />
+                            <h3 className="font-semibold text-base">Meta Semanal</h3>
+                        </div>
+                        <div className="flex items-center justify-between text-sm mb-2">
+                            <span className="text-text-muted">Progresso</span>
+                            <span className="font-bold text-brand">{performanceMetas.weeklyGoal}%</span>
+                        </div>
+                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-gradient-to-r from-brand to-brand/70 rounded-full transition-all duration-700"
+                                style={{ width: `${performanceMetas.weeklyGoal}%` }}
+                            />
+                        </div>
+                        <div className="flex justify-between mt-3 text-xs text-text-muted">
+                            <span>{performanceMetas.tasksCompleted} tarefas completas</span>
+                            <span>{performanceMetas.tasksPending} pendentes</span>
+                        </div>
+                    </Card>
                 </div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-text-muted">Progresso</span>
-                    <span className="font-bold text-brand">{performanceMetas.weeklyGoal}%</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-gradient-to-r from-brand to-brand/70 rounded-full transition-all duration-700"
-                        style={{ width: `${performanceMetas.weeklyGoal}%` }}
+
+                {/* Coluna lateral (1/3): campanha, visitas e sugestões */}
+                <div className="space-y-6">
+                    {/* Campanha Ativa */}
+                    <CampaignWidget
+                        campanha={campanhaMock}
+                        currentPontos={pontos}
+                        enterpriseName="Residencial Aurora"
+                        developerName="Construtora Horizonte"
                     />
-                </div>
-                <div className="flex justify-between mt-3 text-xs text-text-muted">
-                    <span>{performanceMetas.tasksCompleted} tarefas completas</span>
-                    <span>{performanceMetas.tasksPending} pendentes</span>
-                </div>
-            </Card>
 
-            {/* Sugestões inteligentes */}
-            <SmartSuggestions suggestions={smartSuggestions} />
+                    {/* Visitas de Hoje */}
+                    {visitasHoje.length > 0 && (
+                        <Card className="p-5">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Calendar size={18} className="text-violet-500" />
+                                <h3 className="font-semibold text-base">Visitas de Hoje</h3>
+                                <span className="text-xs bg-violet-50 text-violet-600 font-bold px-2 py-0.5 rounded-full">{visitasHoje.length}</span>
+                            </div>
+                            <div className="space-y-3">
+                                {visitasHoje.map(lead => (
+                                    <div key={lead.id} className="flex items-center justify-between p-3 rounded-xl bg-violet-50/50 border border-violet-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-xs font-bold text-violet-700">
+                                                {lead.nome.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-sm">{lead.nome}</p>
+                                                <p className="text-xs text-text-muted">
+                                                    {lead.dataVisita ? new Date(lead.dataVisita).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+                    )}
 
-            {/* Leads prioritários */}
-            <div>
-                <div className="flex items-center gap-2 mb-3">
-                    <AlertCircle size={18} className="text-red-500" />
-                    <h3 className="font-bold text-base">Leads que Precisam de Atenção</h3>
+                    {/* Sugestões inteligentes */}
+                    <SmartSuggestions suggestions={smartSuggestions} />
                 </div>
-                <PriorityLeadList />
             </div>
         </div>
     );

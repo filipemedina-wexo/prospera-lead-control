@@ -64,7 +64,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
             <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Notificações</h3>
                 {notifications.length > 0 && (
-                    <span className="text-[11px] text-brand font-medium">
+                    <span className="text-xs text-brand font-medium">
                         {notifications.length} novo{notifications.length > 1 ? 's' : ''}
                     </span>
                 )}
@@ -93,7 +93,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-2">
                                     <p className="text-sm font-semibold truncate">🔔 Novo lead!</p>
-                                    <span className="text-[11px] text-text-muted shrink-0">{notif.time}</span>
+                                    <span className="text-xs text-text-muted shrink-0">{notif.time}</span>
                                 </div>
                                 <p className="text-sm text-text-primary mt-0.5">{notif.title}</p>
                                 <p className="text-xs text-text-muted mt-0.5">{notif.subtitle} · {notif.phone}</p>
@@ -162,7 +162,7 @@ export function Layout({ children, onMenuToggle }: LayoutProps) {
                             >
                                 <Bell size={18} />
                                 {newLeadCount > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1 shadow-sm animate-bounce">
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold px-1 shadow-sm animate-pulse">
                                         {newLeadCount}
                                     </span>
                                 )}
@@ -209,21 +209,21 @@ export function Layout({ children, onMenuToggle }: LayoutProps) {
                                     <div className="text-center space-y-3">
                                         <div className="flex flex-col items-center">
                                             <p className="font-bold text-sm text-slate-900">{currentCorretor.nome}</p>
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Top Performance</p>
+                                            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">Top Performance</p>
                                         </div>
                                         <div className="w-12 h-0.5 bg-brand/20 mx-auto rounded-full" />
                                         <div className="grid grid-cols-2 gap-2 text-left">
                                             <div>
-                                                <p className="text-[10px] text-slate-400">Meta Semanal</p>
+                                                <p className="text-xs text-slate-400">Meta Semanal</p>
                                                 <p className="font-bold text-brand">{performanceMetas.weeklyGoal}%</p>
                                             </div>
                                             <div>
-                                                <p className="text-[10px] text-slate-400">Pontos XP</p>
+                                                <p className="text-xs text-slate-400">Pontos XP</p>
                                                 <p className="font-bold text-brand">{currentCorretor.pontos}</p>
                                             </div>
                                             <div className="col-span-2 pt-1 border-t border-slate-50 mt-1">
                                                 <p className="flex justify-between items-center">
-                                                    <span className="text-[10px] text-slate-400">Ranking Geral</span>
+                                                    <span className="text-xs text-slate-400">Ranking Geral</span>
                                                     <span className="font-bold text-amber-500 text-xs">#1 Ouro 🏆</span>
                                                 </p>
                                             </div>

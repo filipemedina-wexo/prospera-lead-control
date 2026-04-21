@@ -334,8 +334,8 @@ export function LeadDetalhe() {
                         />
                     </div>
                     <div className="flex justify-between mt-1">
-                        <span className="text-[10px] text-text-muted">agora</span>
-                        <span className="text-[10px] text-text-muted">meta: 10 min</span>
+                        <span className="text-xs text-text-muted">agora</span>
+                        <span className="text-xs text-text-muted">meta: 10 min</span>
                     </div>
                 </div>
             )}
@@ -384,7 +384,7 @@ export function LeadDetalhe() {
                                 <Calendar size={20} />
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">Visita Agendada</p>
+                                <p className="text-xs font-bold uppercase tracking-wider opacity-70">Visita Agendada</p>
                                 <p className="font-bold text-lg leading-none mt-0.5">
                                     {new Date(lead.dataVisita).toLocaleDateString('pt-BR')} <span className="text-sm font-normal opacity-80">às {new Date(lead.dataVisita).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </p>
@@ -470,10 +470,7 @@ export function LeadDetalhe() {
                                     <button
                                         onClick={() => handleStatusClick(nextStatus)}
                                         disabled={autoCloseWarning || (lead.status === 'em_atendimento' && tentativasContato >= 3)}
-                                        className={`w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-white rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none ${nextStatus === 'em_atendimento'
-                                            ? 'bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700'
-                                            : 'bg-brand hover:bg-brand-dark'
-                                            }`}
+                                        className="w-full flex items-center justify-center gap-2 py-3 text-sm font-bold text-white rounded-xl bg-gradient-to-b from-brand to-brand-accent shadow-sm shadow-brand/20 hover:shadow-md hover:shadow-brand/25 hover:-translate-y-px active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                                     >
                                         {nextStatus === 'em_atendimento' ? (
                                             <>
@@ -518,7 +515,7 @@ export function LeadDetalhe() {
                             {!showLostModal ? (
                                 <button
                                     onClick={() => setShowLostModal(true)}
-                                    className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 rounded-xl transition-all shadow-sm hover:shadow"
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl transition-colors"
                                 >
                                     <Ban size={18} />
                                     Encerrar Atendimento (Perdido)
@@ -542,7 +539,7 @@ export function LeadDetalhe() {
                                         </Button>
                                         <button
                                             disabled={!motivoPerdido.trim()}
-                                            className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                                            className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                         >
                                             Confirmar Perda
                                         </button>
@@ -645,17 +642,17 @@ export function LeadDetalhe() {
                                             <div className="flex flex-col gap-1">
                                                 {nota.statusDe && nota.statusPara && (
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-brand bg-brand/5 px-2 py-0.5 rounded-full border border-brand/10">
+                                                        <span className="text-xs font-bold uppercase tracking-wider text-brand bg-brand/5 px-2 py-0.5 rounded-full border border-brand/10">
                                                             {statusLabels[nota.statusPara]}
                                                         </span>
-                                                        <span className="text-[10px] text-text-muted">
+                                                        <span className="text-xs text-text-muted">
                                                             (de {statusLabels[nota.statusDe]})
                                                         </span>
                                                     </div>
                                                 )}
                                                 <p className="text-sm text-text-primary leading-relaxed">{nota.texto}</p>
                                             </div>
-                                            <span className="text-[10px] text-text-muted whitespace-nowrap shrink-0 pt-1">
+                                            <span className="text-xs text-text-muted whitespace-nowrap shrink-0 pt-1">
                                                 {new Date(nota.data).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
@@ -664,14 +661,14 @@ export function LeadDetalhe() {
                                                 {nota.compound.map((ct, i) => {
                                                     const config = sentimentoConfig[ct.sentimento];
                                                     return (
-                                                        <span key={`c-${i}`} className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded border ${config.bg} ${config.text} ${config.border}`}>
+                                                        <span key={`c-${i}`} className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded border ${config.bg} ${config.text} ${config.border}`}>
                                                             {config.icon}
                                                             {ct.assunto}
                                                         </span>
                                                     );
                                                 })}
                                                 {nota.simple.map((st, i) => (
-                                                    <span key={`s-${i}`} className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded ${st.cor}`}>
+                                                    <span key={`s-${i}`} className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded ${st.cor}`}>
                                                         {st.icon} {st.tag}
                                                     </span>
                                                 ))}
