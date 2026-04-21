@@ -100,12 +100,15 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
                                 key={item.id}
                                 onClick={() => handleNavClick(item.id)}
                                 className={cn(
-                                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group cursor-pointer',
+                                    'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group cursor-pointer overflow-hidden',
                                     isActive
                                         ? 'bg-brand/10 text-brand'
                                         : 'text-text-secondary hover:text-text-primary hover:bg-black/5'
                                 )}
                             >
+                                {isActive && (
+                                    <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-brand rounded-r-full" />
+                                )}
                                 <Icon
                                     size={20}
                                     className={cn(
@@ -117,12 +120,6 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
                                 <span className={cn('truncate', collapsed ? 'md:hidden' : '')}>
                                     {item.label}
                                 </span>
-                                {isActive && (
-                                    <div className={cn(
-                                        'ml-auto w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_6px_rgba(34,197,94,0.6)]',
-                                        collapsed ? 'md:hidden' : ''
-                                    )} />
-                                )}
                             </button>
                         );
                     })}
