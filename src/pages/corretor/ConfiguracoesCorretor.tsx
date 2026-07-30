@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { User, Target, Bell, Save, Check } from 'lucide-react';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 
 type Tab = 'perfil' | 'metas' | 'notificacoes';
 
@@ -11,25 +11,25 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'notificacoes', label: 'Notificações', icon: <Bell size={16} /> },
 ];
 
-export function ConfiguracoesPage() {
+export function ConfiguracoesCorretor() {
     const [activeTab, setActiveTab] = useState<Tab>('perfil');
     const [saved, setSaved] = useState(false);
 
     // Perfil
     const [nome, setNome] = useState('João Mendes');
     const [email, setEmail] = useState('joao.mendes@imobprime.com.br');
-    const [cargo, setCargo] = useState('Corretor de Imóveis');
+    const [creci, setCreci] = useState('12345-F');
 
     // Metas
     const [slaMax, setSlaMax] = useState(10);
     const [metaVisitas, setMetaVisitas] = useState(8);
     const [metaConversao, setMetaConversao] = useState(15);
 
-    // Notificações
-    const [notifNovoLead, setNotifNovoLead] = useState(true);
-    const [notifSlaEstourado, setNotifSlaEstourado] = useState(true);
-    const [notifVisitaHoje, setNotifVisitaHoje] = useState(true);
-    const [notifRanking, setNotifRanking] = useState(false);
+    // Notificações - Email / Push
+    const [notifNovoLead, setNotifNovoLead] = useState({ email: true, push: true });
+    const [notifSlaEstourado, setNotifSlaEstourado] = useState({ email: true, push: true });
+    const [notifVisitaHoje, setNotifVisitaHoje] = useState({ email: true, push: false });
+    const [notifRanking, setNotifRanking] = useState({ email: false, push: true });
 
     const handleSave = () => {
         setSaved(true);
@@ -37,10 +37,10 @@ export function ConfiguracoesPage() {
     };
 
     return (
-        <div className="space-y-6 max-w-2xl">
+        <div className="space-y-6 max-w-3xl">
             <div>
                 <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-                <p className="text-text-secondary text-sm mt-1">Gerencie seu perfil, metas e preferências</p>
+                <p className="text-text-secondary text-sm mt-1">Gerencie seu perfil de corretor, metas e preferências</p>
             </div>
 
             {/* Tabs */}
@@ -69,7 +69,7 @@ export function ConfiguracoesPage() {
                         </div>
                         <div>
                             <p className="font-semibold text-lg">{nome}</p>
-                            <p className="text-text-muted text-sm">{cargo}</p>
+                            <p className="text-text-muted text-sm">Corretor Autônomo</p>
                         </div>
                     </div>
 
@@ -93,11 +93,11 @@ export function ConfiguracoesPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1.5">Cargo</label>
+                            <label className="block text-sm font-medium text-text-secondary mb-1.5">CRECI</label>
                             <input
                                 type="text"
-                                value={cargo}
-                                onChange={e => setCargo(e.target.value)}
+                                value={creci}
+                                onChange={e => setCreci(e.target.value)}
                                 className="w-full px-3 py-2 rounded-xl border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-brand/30 text-sm"
                             />
                         </div>
@@ -111,19 +111,12 @@ export function ConfiguracoesPage() {
                     <p className="text-sm text-text-muted">Configure suas metas pessoais de performance. Os alertas do sistema serão baseados nestes valores.</p>
 
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-text-secondary mb-1.5">
+                        <div className="bg-black/[0.02] border border-border p-3 rounded-xl">
+                            <label className="block text-sm font-medium text-text-secondary mb-1">
                                 SLA Máximo de Resposta <span className="text-text-muted font-normal">(minutos)</span>
                             </label>
-                            <input
-                                type="number"
-                                min={1}
-                                max={60}
-                                value={slaMax}
-                                onChange={e => setSlaMax(Number(e.target.value))}
-                                className="w-full px-3 py-2 rounded-xl border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-brand/30 text-sm"
-                            />
-                            <p className="text-xs text-text-muted mt-1">Leads respondidos acima deste tempo serão sinalizados como SLA estourado</p>
+                            <div className="font-semibold text-lg">{slaMax} min</div>
+                            <p className="text-xs text-text-muted mt-0.5">Esse limite é exigido e configurado pela sua imobiliária</p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-text-secondary mb-1.5">
@@ -158,34 +151,44 @@ export function ConfiguracoesPage() {
 
             {/* === Aba Notificações === */}
             {activeTab === 'notificacoes' && (
-                <Card className="p-6 space-y-4">
-                    <p className="text-sm text-text-muted">Escolha quais alertas você deseja receber.</p>
+                <Card className="p-6 space-y-6">
+                    <p className="text-sm text-text-muted">Escolha por quais canais você deseja receber seus alertas.</p>
 
-                    {[
-                        { label: 'Novo Lead atribuído', desc: 'Notifique quando um novo lead chegar para você', value: notifNovoLead, onChange: setNotifNovoLead },
-                        { label: 'SLA estourado', desc: 'Alerta quando um lead ultrapassar seu limite de SLA', value: notifSlaEstourado, onChange: setNotifSlaEstourado },
-                        { label: 'Visita do dia', desc: 'Lembrete das visitas agendadas para hoje', value: notifVisitaHoje, onChange: setNotifVisitaHoje },
-                        { label: 'Atualização de ranking', desc: 'Notifique quando sua posição no ranking mudar', value: notifRanking, onChange: setNotifRanking },
-                    ].map(({ label, desc, value, onChange }) => (
-                        <div key={label} className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-black/[0.01] transition-colors">
-                            <div>
-                                <p className="font-medium text-sm">{label}</p>
-                                <p className="text-xs text-text-muted mt-0.5">{desc}</p>
+                    <div className="space-y-0 divide-y divide-border/50 border border-border rounded-xl">
+                        {[
+                            { label: 'Novo Lead', desc: 'Notifique quando um novo lead for atribuído a você', state: notifNovoLead, setter: setNotifNovoLead },
+                            { label: 'SLA Estourado', desc: 'Alerta quando um lead ultrapassar seu limite de tempo', state: notifSlaEstourado, setter: setNotifSlaEstourado },
+                            { label: 'Visitas', desc: 'Lembrete das visitas agendadas no dia', state: notifVisitaHoje, setter: setNotifVisitaHoje },
+                            { label: 'Ranking', desc: 'Sua posição mudou no ranking', state: notifRanking, setter: setNotifRanking },
+                        ].map(({ label, desc, state, setter }) => (
+                            <div key={label} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/[0.01]">
+                                <div>
+                                    <p className="font-medium text-sm">{label}</p>
+                                    <p className="text-xs text-text-muted mt-0.5">{desc}</p>
+                                </div>
+                                <div className="flex items-center gap-6">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={state.email} 
+                                            onChange={(e) => setter({...state, email: e.target.checked})}
+                                            className="w-4 h-4 rounded text-brand focus:ring-brand" 
+                                        />
+                                        <span className="text-sm text-text-secondary">E-mail</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={state.push} 
+                                            onChange={(e) => setter({...state, push: e.target.checked})}
+                                            className="w-4 h-4 rounded text-brand focus:ring-brand" 
+                                        />
+                                        <span className="text-sm text-text-secondary">Navegador</span>
+                                    </label>
+                                </div>
                             </div>
-                            <button
-                                onClick={() => onChange(!value)}
-                                className={`relative w-11 h-6 rounded-full transition-colors ${value ? 'bg-brand' : 'bg-slate-200'
-                                    }`}
-                                role="switch"
-                                aria-checked={value}
-                            >
-                                <span
-                                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-0'
-                                        }`}
-                                />
-                            </button>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </Card>
             )}
 

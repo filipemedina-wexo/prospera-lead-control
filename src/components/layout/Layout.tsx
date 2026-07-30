@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '../ui/Button';
 import { ProfileSwitcher } from '../ui/ProfileSwitcher';
 import { useApp } from '../../context/AppContext';
+import { useTour } from '../../context/TourContext';
 import { leads, getEmpreendimento, corretores, performanceMetas } from '../../data/mockData';
 
 interface LayoutProps {
@@ -108,6 +109,7 @@ function NotificationDropdown({ onClose }: { onClose: () => void }) {
 
 export function Layout({ children, onMenuToggle }: LayoutProps) {
     const { profile } = useApp();
+    const { progress } = useTour();
     const [showNotifications, setShowNotifications] = useState(false);
     const [showAvatarInfo, setShowAvatarInfo] = useState(false);
 
@@ -180,6 +182,10 @@ export function Layout({ children, onMenuToggle }: LayoutProps) {
                                 onMouseEnter={() => setShowAvatarInfo(true)}
                                 onMouseLeave={() => setShowAvatarInfo(false)}
                             >
+                                {/* Badge de Level */}
+                                <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-bg z-20 shadow-md">
+                                    Lv {progress.level}
+                                </div>
                                 <svg className="w-full h-full -rotate-90 drop-shadow-sm" viewBox="0 0 44 44">
                                     <circle cx="22" cy="22" r="20" fill="none" stroke="#f1f5f9" strokeWidth="3" />
                                     <circle
@@ -218,8 +224,8 @@ export function Layout({ children, onMenuToggle }: LayoutProps) {
                                                 <p className="font-bold text-brand">{performanceMetas.weeklyGoal}%</p>
                                             </div>
                                             <div>
-                                                <p className="text-xs text-slate-400">Pontos XP</p>
-                                                <p className="font-bold text-brand">{currentCorretor.pontos}</p>
+                                                <p className="text-[10px] text-slate-400">Pontos XP</p>
+                                                <p className="font-bold text-brand">{currentCorretor.pontos + progress.xp}</p>
                                             </div>
                                             <div className="col-span-2 pt-1 border-t border-slate-50 mt-1">
                                                 <p className="flex justify-between items-center">

@@ -2,7 +2,7 @@
 // TYPES
 // ============================
 
-export type UserProfile = 'incorporadora' | 'imobiliaria' | 'corretor';
+export type UserProfile = 'admin' | 'incorporadora' | 'imobiliaria' | 'corretor';
 
 export type LeadStatus = 'novo' | 'em_atendimento' | 'contatado' | 'visita_marcada' | 'proposta' | 'venda' | 'perdido';
 
@@ -47,8 +47,14 @@ export interface Empreendimento {
         pontosInteresse: string[];
     };
     imagens?: string[];
+    documentos?: {
+        nome: string;
+        tipo: 'pdf' | 'video' | 'link';
+        url: string;
+    }[];
     statusObra?: 'lancamento' | 'em_obras' | 'pronto';
     entregaPrevista?: string;
+    comissao?: string; // Ex: '6% + Bônus'
 }
 
 export interface Imobiliaria {
@@ -92,17 +98,38 @@ export interface RankingImobiliaria {
     ehSuaImob: boolean;
 }
 
+export interface CampanhaRegra {
+    tipo: 'atingiu_ganhou' | 'sorteio_cotas' | 'ranking';
+    metrica: 'pontos' | 'vendas' | 'visitas' | 'sla_medio' | 'leads_atendidos';
+    alvo: number;
+}
+
 export interface Campanha {
     id: string;
     titulo: string;
     descricao: string;
-    metaPontos: number;
+    metaPontos: number; // mantido por compatibilidade
+    regra?: CampanhaRegra;
     premio: string;
     premioImagemUrl?: string;
+    quantidadePremios?: number;
     dataInicio: string;
     dataFim: string;
     ativa: boolean;
     empreendimentoId: string;
+    statusSorteio?: 'pendente' | 'em_andamento' | 'concluido';
+    codigoSorteio?: string;
+}
+
+export interface Aviso {
+    id: string;
+    titulo: string;
+    mensagem: string;
+    nivel: 'info' | 'alerta' | 'sucesso';
+    dataCriacao: string;
+    audiencia: 'todos' | 'imobiliaria_especifica' | 'corretores';
+    imobiliariaId?: string;
+    autor: string;
 }
 
 export interface HistoricoEntry {
@@ -132,6 +159,10 @@ export interface Lead {
     dataVisita?: string; // ISO string for scheduled visit
     historico: HistoricoEntry[];
     publicToken?: string;
+    origem?: {
+        canal: string; // Ex: Facebook Ads, Google Ads, Orgânico, Portal, WhatsApp
+        campanha: string; // Ex: Black Friday 2024, Lançamento Fase 1
+    };
 }
 
 export interface Suggestion {
@@ -208,7 +239,19 @@ export const empreendimentos: Empreendimento[] = [
                 'Petz Vergueiro (5min)',
                 'Hospital Santa Joana (7min)'
             ]
-        }
+        },
+        imagens: [
+            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=2000',
+            'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=2000',
+            'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2000',
+            'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?auto=format&fit=crop&q=80&w=2000'
+        ],
+        documentos: [
+            { nome: 'Book do Empreendimento', tipo: 'pdf', url: '#' },
+            { nome: 'Tabela de Preços - Nov/24', tipo: 'pdf', url: '#' },
+            { nome: 'Tour Virtual 360', tipo: 'link', url: '#' }
+        ],
+        comissao: '6% + R$ 2.000 (Premiação)'
     },
     {
         id: 'emp-2',
@@ -234,7 +277,16 @@ export const empreendimentos: Empreendimento[] = [
             bairro: 'Cambuí',
             endereco: 'Rua Maria Monteiro, 500',
             pontosInteresse: ['Centro de Convivência', 'Starbucks', 'Tênis Clube']
-        }
+        },
+        imagens: [
+            'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=2000',
+            'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=2000'
+        ],
+        documentos: [
+            { nome: 'Tabela de Preços - Nov/24', tipo: 'pdf', url: '#' },
+            { nome: 'Memorial Descritivo', tipo: 'pdf', url: '#' }
+        ],
+        comissao: '5%'
     },
     {
         id: 'emp-3',
@@ -256,18 +308,61 @@ export const imobiliarias: Imobiliaria[] = [
     { id: 'imob-3', nome: 'Casa & Cia' },
 ];
 
-export const campanhaAtiva: Campanha = {
-    id: 'camp-1',
-    titulo: 'Semana Turbo 🚀',
-    descricao: 'Atinga a meta de Pontos esta semana e garanta seu lugar no jantar exclusivo de premiação.',
-    metaPontos: 1000,
-    premio: 'Jantar no Terraço Itália',
-    premioImagemUrl: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
-    dataInicio: '2023-10-01T00:00:00Z',
-    dataFim: '2023-10-07T23:59:59Z',
-    ativa: true,
-    empreendimentoId: 'emp-1'
-};
+export const listaCampanhas: Campanha[] = [
+    {
+        id: 'camp-1',
+        titulo: 'Semana Turbo 🚀',
+        descricao: 'Atinga a meta de Pontos esta semana e garanta seu lugar no jantar exclusivo de premiação.',
+        metaPontos: 1000,
+        regra: { tipo: 'atingiu_ganhou', metrica: 'pontos', alvo: 1000 },
+        premio: 'Jantar no Terraço Itália',
+        premioImagemUrl: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
+        quantidadePremios: 10,
+        dataInicio: '2023-10-01T00:00:00Z',
+        dataFim: '2023-10-07T23:59:59Z',
+        ativa: true,
+        empreendimentoId: 'emp-1'
+    },
+    {
+        id: 'camp-2',
+        titulo: 'Sorteio Fim de Ano 🚗',
+        descricao: 'A cada 3 vendas você ganha um cupom (vida) para o sorteio de um Carro 0KM!',
+        metaPontos: 0,
+        regra: { tipo: 'sorteio_cotas', metrica: 'vendas', alvo: 3 },
+        premio: 'Carro 0KM',
+        premioImagemUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80',
+        quantidadePremios: 1,
+        dataInicio: '2023-10-01T00:00:00Z',
+        dataFim: '2023-12-31T23:59:59Z',
+        ativa: true,
+        empreendimentoId: 'emp-1',
+        statusSorteio: 'pendente',
+        codigoSorteio: 'A7X9P2'
+    }
+];
+
+export const campanhaAtiva = listaCampanhas[0];
+
+export const avisosGlobais: Aviso[] = [
+    {
+        id: 'aviso-1',
+        titulo: 'Nova Tabela de Preços - Residencial Aurora',
+        mensagem: 'Atenção parceiros, a nova tabela de preços de Outubro já está disponível no Drive. As condições de pagamento foram flexibilizadas!',
+        nivel: 'sucesso',
+        dataCriacao: new Date(Date.now() - 86400000 * 2).toISOString(),
+        audiencia: 'todos',
+        autor: 'Diretoria Comercial',
+    },
+    {
+        id: 'aviso-2',
+        titulo: 'Manutenção do Sistema Integrado',
+        mensagem: 'Neste sábado das 02h às 04h o sistema passará por manutenção preventiva. Leads capturados no período cairão na fila normalmente pós retorno.',
+        nivel: 'alerta',
+        dataCriacao: new Date(Date.now() - 86400000 * 5).toISOString(),
+        audiencia: 'todos',
+        autor: 'Equipe de TI',
+    }
+];
 
 export const corretores: Corretor[] = [
     { id: 'cor-1', nome: 'João Mendes', imobiliariaId: 'imob-1', ativo: true, tempoOnline: 42, pontos: 850, telefone: '(11) 99123-4567', email: 'joao@prime.com', empreendimentoIds: ['emp-1', 'emp-2'], avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
@@ -346,18 +441,18 @@ function minutesAgo(m: number) { return new Date(now.getTime() - m * 60000).toIS
 
 export const leads: Lead[] = [
     // Recent — novos (sem first_response)
-    { id: 'lead-1', nome: 'Fernanda Alves', telefone: '(11) 99876-5432', email: 'fernanda@email.com', empreendimentoId: 'emp-1', imobiliariaId: 'imob-1', corretorId: 'cor-1', status: 'novo', criadoEm: minutesAgo(3), historico: makeHistory('lead-1', 'novo', minutesAgo(3), 'João Mendes', 'Imobiliária Prime'), publicToken: 'H7k2La' },
-    { id: 'lead-2', nome: 'Ricardo Barros', telefone: '(11) 98765-4321', empreendimentoId: 'emp-2', imobiliariaId: 'imob-2', corretorId: 'cor-4', status: 'novo', criadoEm: minutesAgo(8), historico: makeHistory('lead-2', 'novo', minutesAgo(8), 'Ana Oliveira', 'Rede Lares'), publicToken: 'x9P2mQ' },
+    { id: 'lead-1', nome: 'Fernanda Alves', telefone: '(11) 99876-5432', email: 'fernanda@email.com', empreendimentoId: 'emp-1', imobiliariaId: 'imob-1', corretorId: 'cor-1', status: 'novo', criadoEm: minutesAgo(3), historico: makeHistory('lead-1', 'novo', minutesAgo(3), 'João Mendes', 'Imobiliária Prime'), publicToken: 'H7k2La', origem: { canal: 'Facebook Ads', campanha: 'Lançamento Fase 1' } },
+    { id: 'lead-2', nome: 'Ricardo Barros', telefone: '(11) 98765-4321', empreendimentoId: 'emp-2', imobiliariaId: 'imob-2', corretorId: 'cor-4', status: 'novo', criadoEm: minutesAgo(8), historico: makeHistory('lead-2', 'novo', minutesAgo(8), 'Ana Oliveira', 'Rede Lares'), publicToken: 'x9P2mQ', origem: { canal: 'Portal Imobiliário', campanha: 'ZAP Imóveis' } },
     { id: 'lead-3', nome: 'Camila Torres', telefone: '(19) 99654-3210', empreendimentoId: 'emp-3', imobiliariaId: 'imob-3', corretorId: 'cor-6', status: 'novo', criadoEm: minutesAgo(15), historico: makeHistory('lead-3', 'novo', minutesAgo(15), 'Lucia Ferreira', 'Casa & Cia'), publicToken: 'j8L1nZ' },
 
     // Contatados
-    { id: 'lead-4', nome: 'Bruno Nascimento', telefone: '(11) 97654-3210', empreendimentoId: 'emp-1', imobiliariaId: 'imob-1', corretorId: 'cor-2', status: 'contatado', criadoEm: hoursAgo(2), firstResponseAt: hoursAgo(1.8), historico: makeHistory('lead-4', 'contatado', hoursAgo(2), 'Maria Souza', 'Imobiliária Prime', hoursAgo(1.8)) },
-    { id: 'lead-5', nome: 'Juliana Pires', telefone: '(16) 98543-2109', empreendimentoId: 'emp-3', imobiliariaId: 'imob-2', corretorId: 'cor-5', status: 'contatado', criadoEm: hoursAgo(5), firstResponseAt: hoursAgo(4.5), historico: makeHistory('lead-5', 'contatado', hoursAgo(5), 'Pedro Santos', 'Rede Lares', hoursAgo(4.5)) },
+    { id: 'lead-4', nome: 'Bruno Nascimento', telefone: '(11) 97654-3210', empreendimentoId: 'emp-1', imobiliariaId: 'imob-1', corretorId: 'cor-2', status: 'contatado', criadoEm: hoursAgo(2), firstResponseAt: hoursAgo(1.8), historico: makeHistory('lead-4', 'contatado', hoursAgo(2), 'Maria Souza', 'Imobiliária Prime', hoursAgo(1.8)), origem: { canal: 'WhatsApp', campanha: 'Indicação' } },
+    { id: 'lead-5', nome: 'Juliana Pires', telefone: '(16) 98543-2109', empreendimentoId: 'emp-3', imobiliariaId: 'imob-2', corretorId: 'cor-5', status: 'contatado', criadoEm: hoursAgo(5), firstResponseAt: hoursAgo(4.5), historico: makeHistory('lead-5', 'contatado', hoursAgo(5), 'Pedro Santos', 'Rede Lares', hoursAgo(4.5)), origem: { canal: 'Google Ads', campanha: 'Busca Genérica' } },
     { id: 'lead-6', nome: 'Marcos Vieira', telefone: '(13) 97432-1098', empreendimentoId: 'emp-4', imobiliariaId: 'imob-3', corretorId: 'cor-7', status: 'contatado', criadoEm: hoursAgo(6), firstResponseAt: hoursAgo(5.9), historico: makeHistory('lead-6', 'contatado', hoursAgo(6), 'Rafael Costa', 'Casa & Cia', hoursAgo(5.9)) },
 
     // Visita marcada
-    { id: 'lead-7', nome: 'Patrícia Rocha', telefone: '(11) 96321-0987', empreendimentoId: 'emp-1', imobiliariaId: 'imob-1', corretorId: 'cor-1', status: 'visita_marcada', criadoEm: daysAgo(3), firstResponseAt: daysAgo(2.9), historico: makeHistory('lead-7', 'visita_marcada', daysAgo(3), 'João Mendes', 'Imobiliária Prime', daysAgo(2.9)) },
-    { id: 'lead-8', nome: 'Thiago Martins', telefone: '(19) 95210-9876', empreendimentoId: 'emp-2', imobiliariaId: 'imob-2', corretorId: 'cor-4', status: 'visita_marcada', criadoEm: daysAgo(4), firstResponseAt: daysAgo(3.8), historico: makeHistory('lead-8', 'visita_marcada', daysAgo(4), 'Ana Oliveira', 'Rede Lares', daysAgo(3.8)) },
+    { id: 'lead-7', nome: 'Patrícia Rocha', telefone: '(11) 96321-0987', empreendimentoId: 'emp-1', imobiliariaId: 'imob-1', corretorId: 'cor-1', status: 'visita_marcada', criadoEm: daysAgo(3), firstResponseAt: daysAgo(2.9), historico: makeHistory('lead-7', 'visita_marcada', daysAgo(3), 'João Mendes', 'Imobiliária Prime', daysAgo(2.9)), origem: { canal: 'Instagram', campanha: 'Retargeting' } },
+    { id: 'lead-8', nome: 'Thiago Martins', telefone: '(19) 95210-9876', empreendimentoId: 'emp-2', imobiliariaId: 'imob-2', corretorId: 'cor-4', status: 'visita_marcada', criadoEm: daysAgo(4), firstResponseAt: daysAgo(3.8), historico: makeHistory('lead-8', 'visita_marcada', daysAgo(4), 'Ana Oliveira', 'Rede Lares', daysAgo(3.8)), origem: { canal: 'Facebook Ads', campanha: 'Lançamento Fase 1' } },
 
     // Proposta
     { id: 'lead-9', nome: 'Daniela Freitas', telefone: '(11) 94109-8765', empreendimentoId: 'emp-1', imobiliariaId: 'imob-3', corretorId: 'cor-8', status: 'proposta', criadoEm: daysAgo(7), firstResponseAt: daysAgo(6.9), historico: makeHistory('lead-9', 'proposta', daysAgo(7), 'Beatriz Almeida', 'Casa & Cia', daysAgo(6.9)) },

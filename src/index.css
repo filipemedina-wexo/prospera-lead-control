@@ -2,16 +2,32 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #22C55E;
-  --color-brand-accent: #16A34A;
-  --color-bg: #F8FAFC;
+  --color-brand: #C6A87C;
+  --color-brand-accent: #A38458;
+  --color-bg: #FAFAFA;
   --color-bg-surface: #FFFFFF;
-  --color-border: #E2E8F0;
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748B;
+  --color-border: #E5E7EB;
+  --color-text-primary: #111827;
+  --color-text-secondary: #4B5563;
+  --color-text-muted: #9CA3AF;
 
-  --font-sans: 'Inter', system-ui, sans-serif;
+  /* Semantic Status Colors */
+  --color-success: #166534;
+  --color-success-bg: #F0FDF4;
+  --color-alert: #991B1B;
+  --color-alert-bg: #FEF2F2;
+  --color-warning: #92400E;
+  --color-warning-bg: #FFFBEB;
+  --color-info: #1E293B;
+  --color-info-bg: #F8FAFC;
+
+  /* Premium Levels */
+  --color-lvl-bronze: #8B5A2B;
+  --color-lvl-silver: #94A3B8;
+  --color-lvl-gold: #C6A87C;
+  --color-lvl-black: #111827;
+
+  --font-sans: 'Montserrat', system-ui, sans-serif;
 
   --radius-xl: 24px;
   --radius-md: 8px;
@@ -59,5 +75,5 @@ body {
 
 /* Utility: Glow text */
 .glow-text {
-  text-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+  text-shadow: 0 0 20px rgba(198, 168, 124, 0.4);
 }

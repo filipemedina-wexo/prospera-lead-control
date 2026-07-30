@@ -279,6 +279,19 @@ function CorretorDrawer({ corretor, onClose }: DrawerProps) {
 export function Corretores() {
     const imobCorretores = corretores.filter(c => c.imobiliariaId === IMOB_ID);
     const [selected, setSelected] = useState<Corretor | null>(null);
+    const [showInvite, setShowInvite] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteSent, setInviteSent] = useState(false);
+
+    const handleInvite = (e: React.FormEvent) => {
+        e.preventDefault();
+        setInviteSent(true);
+        setTimeout(() => {
+            setShowInvite(false);
+            setInviteSent(false);
+            setInviteEmail('');
+        }, 3000);
+    };
 
     return (
         <>
@@ -290,11 +303,51 @@ export function Corretores() {
                             {imobCorretores.filter(c => c.ativo).length} ativos · {imobCorretores.length} total — Imobiliária Prime
                         </p>
                     </div>
-                    <Button className="self-start sm:self-auto gap-2">
+                    <Button onClick={() => setShowInvite(true)} className="self-start sm:self-auto gap-2">
                         <Plus size={16} />
-                        Novo Corretor
+                        Convidar Corretor
                     </Button>
                 </div>
+
+                {showInvite && (
+                    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+                        <Card className="w-full max-w-md p-6">
+                            <h2 className="text-xl font-bold mb-2">Convidar Corretor</h2>
+                            <p className="text-sm text-text-muted mb-6">
+                                Envie um convite para que o corretor se conecte à imobiliária e receba leads.
+                            </p>
+                            
+                            {inviteSent ? (
+                                <div className="bg-green-50 text-green-700 p-4 rounded-xl text-center">
+                                    <p className="font-semibold">Convite enviado com sucesso!</p>
+                                    <p className="text-sm mt-1">O corretor receberá as instruções por e-mail.</p>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleInvite} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-text-secondary mb-1.5">E-mail do Corretor</label>
+                                        <input
+                                            type="email"
+                                            required
+                                            value={inviteEmail}
+                                            onChange={e => setInviteEmail(e.target.value)}
+                                            placeholder="corretor@exemplo.com.br"
+                                            className="w-full px-3 py-2 rounded-xl border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                                        />
+                                    </div>
+                                    <div className="flex justify-end gap-3 pt-2">
+                                        <Button type="button" variant="ghost" onClick={() => setShowInvite(false)}>
+                                            Cancelar
+                                        </Button>
+                                        <Button type="submit" variant="primary">
+                                            Enviar Convite
+                                        </Button>
+                                    </div>
+                                </form>
+                            )}
+                        </Card>
+                    </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {imobCorretores.map(c => {

@@ -20,15 +20,21 @@ const statusOptions: (LeadStatus | 'todos')[] = ['todos', 'novo', 'contatado', '
 export function LeadsImobiliaria() {
     const [filterStatus, setFilterStatus] = useState<LeadStatus | 'todos'>('todos');
     const [filterCor, setFilterCor] = useState('todos');
+    const [filterOrigem, setFilterOrigem] = useState('todos');
     const [search, setSearch] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
     const [drawerLeadId, setDrawerLeadId] = useState<string | null>(null);
 
     const imobCorretores = corretores.filter(c => c.imobiliariaId === IMOB_ID);
+    
+    // Extract unique origins from this imobiliaria's leads
+    const imobLeadsAll = leads.filter(l => l.imobiliariaId === IMOB_ID);
+    const origensUnicas = Array.from(new Set(imobLeadsAll.map(l => l.origem?.canal).filter(Boolean))) as string[];
 
-    let filtered = leads.filter(l => l.imobiliariaId === IMOB_ID);
+    let filtered = imobLeadsAll;
     if (filterStatus !== 'todos') filtered = filtered.filter(l => l.status === filterStatus);
     if (filterCor !== 'todos') filtered = filtered.filter(l => l.corretorId === filterCor);
+    if (filterOrigem !== 'todos') filtered = filtered.filter(l => l.origem?.canal === filterOrigem);
     if (search) {
         const s = search.toLowerCase();
         filtered = filtered.filter(l => l.nome.toLowerCase().includes(s) || l.telefone.includes(s));
@@ -86,6 +92,12 @@ export function LeadsImobiliaria() {
                         <option value="todos">Todos Corretores</option>
                         {imobCorretores.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                     </select>
+
+                    <select value={filterOrigem} onChange={e => setFilterOrigem(e.target.value)}
+                        className="text-sm rounded-lg border border-border bg-bg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand/30">
+                        <option value="todos">Todas Origens</option>
+                        {origensUnicas.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
                 </div>
             </Card>
 
@@ -105,6 +117,7 @@ export function LeadsImobiliaria() {
                                 <tr className="border-b border-border text-left bg-black/[0.02]">
                                     <th className="px-4 py-3 text-text-muted font-medium">Lead</th>
                                     <th className="px-4 py-3 text-text-muted font-medium">Empreendimento</th>
+                                    <th className="px-4 py-3 text-text-muted font-medium">Origem</th>
                                     <th className="px-4 py-3 text-text-muted font-medium">Corretor</th>
                                     <th className="px-4 py-3 text-text-muted font-medium">Status</th>
                                     <th className="px-4 py-3 text-text-muted font-medium text-center">SLA</th>
@@ -127,6 +140,16 @@ export function LeadsImobiliaria() {
                                                 <p className="text-xs text-text-muted">{lead.telefone}</p>
                                             </td>
                                             <td className="px-4 py-3 text-text-secondary">{emp?.nome}</td>
+                                            <td className="px-4 py-3">
+                                                {lead.origem ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-xs text-text-primary">{lead.origem.canal}</span>
+                                                        <span className="text-[10px] text-text-muted truncate max-w-[120px]">{lead.origem.campanha}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-text-muted text-xs">—</span>
+                                                )}
+                                            </td>
                                             <td className="px-4 py-3 text-text-secondary">{cor?.nome}</td>
                                             <td className="px-4 py-3"><StatusBadge status={lead.status} /></td>
                                             <td className="px-4 py-3 text-center">

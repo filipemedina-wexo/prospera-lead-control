@@ -1,35 +1,50 @@
 import { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { TourProvider } from './context/TourContext';
 import { Layout } from './components/layout/Layout';
 import { Sidebar } from './components/layout/Sidebar';
+import { TourOverlay } from './components/layout/TourOverlay';
+
+// Admin SaaS pages
+import { DashboardAdmin } from './pages/admin/DashboardAdmin';
+import { GestaoIncorporadoras } from './pages/admin/GestaoIncorporadoras';
+import { GestaoImobiliarias } from './pages/admin/GestaoImobiliarias';
+import { GestaoCorretores } from './pages/admin/GestaoCorretores';
 
 // Incorporadora pages
 import { DashboardIncorporadora } from './pages/incorporadora/DashboardIncorporadora';
 import { LeadsIncorporadora } from './pages/incorporadora/LeadsIncorporadora';
-import { Empreendimentos } from './pages/incorporadora/Empreendimentos';
+import { GestaoEmpreendimentos } from './pages/incorporadora/GestaoEmpreendimentos';
+import { NovoEmpreendimento } from './pages/incorporadora/NovoEmpreendimento';
 import { Imobiliarias } from './pages/incorporadora/Imobiliarias';
+import { CampanhasIncorporadora } from './pages/incorporadora/CampanhasIncorporadora';
+import { CampanhaDetalhe } from './pages/incorporadora/CampanhaDetalhe';
+import { AvisosIncorporadora } from './pages/incorporadora/AvisosIncorporadora';
+import { SalaSorteio } from './pages/incorporadora/SalaSorteio';
+import { ConfiguracoesIncorporadora } from './pages/incorporadora/ConfiguracoesIncorporadora';
 
 // Imobiliária pages
 import { DashboardImobiliaria } from './pages/imobiliaria/DashboardImobiliaria';
 import { LeadsImobiliaria } from './pages/imobiliaria/LeadsImobiliaria';
 import { Corretores } from './pages/imobiliaria/Corretores';
-import { EmpreendimentosImobiliaria } from './pages/imobiliaria/EmpreendimentosImobiliaria';
 import { RoletaLeads } from './pages/imobiliaria/RoletaLeads';
+import { ConfiguracoesImobiliaria } from './pages/imobiliaria/ConfiguracoesImobiliaria';
 
 // Corretor pages
 import { DashboardCorretor } from './pages/corretor/DashboardCorretor';
 import { MeusLeads } from './pages/corretor/MeusLeads';
-import { MeusEmpreendimentos } from './pages/corretor/MeusEmpreendimentos';
 import { LeadDetalhe } from './pages/corretor/LeadDetalhe';
-import { EmpreendimentoDetalhe } from './pages/corretor/EmpreendimentoDetalhe';
-
-import { ConfiguracoesPage } from './pages/Configuracoes';
+import { ConfiguracoesCorretor } from './pages/corretor/ConfiguracoesCorretor';
 
 // Auth pages
 import Login from './pages/auth/Login';
 import Cadastro from './pages/auth/Cadastro';
 import AceitarConvite from './pages/auth/AceitarConvite';
+import { Onboarding } from './pages/onboarding/Onboarding';
+import { Academia } from './pages/shared/Academia';
+import { CatalogoEmpreendimentos } from './pages/shared/CatalogoEmpreendimentos';
+import { EmpreendimentoDetalhe } from './pages/shared/EmpreendimentoDetalhe';
 
 // Public pages
 import { ApresentacaoImovel } from './pages/cliente/ApresentacaoImovel';
@@ -49,13 +64,40 @@ function FullPageSpinner() {
 function PageRouter() {
     const { profile, currentPage } = useApp();
 
+    if (currentPage === 'onboarding') {
+        return <Onboarding />;
+    }
+    
+    if (currentPage === 'academia') {
+        return <Academia />;
+    }
+
+    if (currentPage === 'empreendimento-detalhe') {
+        return <EmpreendimentoDetalhe />;
+    }
+
+    if (profile === 'admin') {
+        switch (currentPage) {
+            case 'admin-dashboard': return <DashboardAdmin />;
+            case 'admin-incorporadoras': return <GestaoIncorporadoras />;
+            case 'admin-imobiliarias': return <GestaoImobiliarias />;
+            case 'admin-corretores': return <GestaoCorretores />;
+            default: return <DashboardAdmin />;
+        }
+    }
+
     if (profile === 'incorporadora') {
         switch (currentPage) {
             case 'dashboard': return <DashboardIncorporadora />;
             case 'leads': return <LeadsIncorporadora />;
-            case 'empreendimentos': return <Empreendimentos />;
+            case 'campanhas': return <CampanhasIncorporadora />;
+            case 'campanha-detalhe': return <CampanhaDetalhe />;
+            case 'avisos': return <AvisosIncorporadora />;
+            case 'sorteio': return <SalaSorteio />;
+            case 'empreendimentos': return <GestaoEmpreendimentos />;
+            case 'novo-empreendimento': return <NovoEmpreendimento />;
             case 'imobiliarias': return <Imobiliarias />;
-            case 'configuracoes': return <ConfiguracoesPage />;
+            case 'configuracoes': return <ConfiguracoesIncorporadora />;
             default: return <DashboardIncorporadora />;
         }
     }
@@ -64,10 +106,10 @@ function PageRouter() {
         switch (currentPage) {
             case 'dashboard': return <DashboardImobiliaria />;
             case 'leads': return <LeadsImobiliaria />;
-            case 'empreendimentos': return <EmpreendimentosImobiliaria />;
+            case 'empreendimentos': return <CatalogoEmpreendimentos />;
             case 'corretores': return <Corretores />;
             case 'distribuicao': return <RoletaLeads />;
-            case 'configuracoes': return <ConfiguracoesPage />;
+            case 'configuracoes': return <ConfiguracoesImobiliaria />;
             default: return <DashboardImobiliaria />;
         }
     }
@@ -76,10 +118,10 @@ function PageRouter() {
         switch (currentPage) {
             case 'dashboard': return <DashboardCorretor />;
             case 'meus-leads': return <MeusLeads />;
-            case 'meus-empreendimentos': return <MeusEmpreendimentos />;
+            case 'meus-empreendimentos': return <CatalogoEmpreendimentos />;
             case 'lead-detalhe': return <LeadDetalhe />;
             case 'empreendimento-detalhe': return <EmpreendimentoDetalhe />;
-            case 'configuracoes': return <ConfiguracoesPage />;
+            case 'configuracoes': return <ConfiguracoesCorretor />;
             default: return <DashboardCorretor />;
         }
     }
@@ -99,6 +141,7 @@ function AppContent() {
                 mobileOpen={sidebarMobileOpen}
                 onMobileClose={() => setSidebarMobileOpen(false)}
             />
+            <TourOverlay />
             <div className={sidebarCollapsed ? 'md:ml-16 transition-all duration-300' : 'md:ml-56 transition-all duration-300'}>
                 <div className="max-w-[1280px] mx-auto p-4 md:p-6">
                     <PageRouter />
@@ -141,7 +184,9 @@ function AppWithAuth() {
 
     return (
         <AppProvider defaultProfile={defaultProfile}>
-            <AppContent />
+            <TourProvider>
+                <AppContent />
+            </TourProvider>
         </AppProvider>
     );
 }

@@ -53,8 +53,8 @@ export function DashboardCorretor() {
     const pontos = corretor?.pontos ?? 0;
 
     // XP level system
-    const nivel = pontos >= 500 ? 'Diamante' : pontos >= 300 ? 'Ouro' : pontos >= 150 ? 'Prata' : 'Bronze';
-    const nivelColor = pontos >= 500 ? 'text-sky-400' : pontos >= 300 ? 'text-yellow-500' : pontos >= 150 ? 'text-slate-400' : 'text-amber-700';
+    const nivel = pontos >= 500 ? 'Black' : pontos >= 300 ? 'Ouro' : pontos >= 150 ? 'Prata' : 'Bronze';
+    const nivelColor = pontos >= 500 ? 'text-lvl-black' : pontos >= 300 ? 'text-lvl-gold' : pontos >= 150 ? 'text-lvl-silver' : 'text-lvl-bronze';
     const proximoNivel = pontos >= 500 ? 500 : pontos >= 300 ? 500 : pontos >= 150 ? 300 : 150;
     const progressoNivel = Math.min(Math.round((pontos / proximoNivel) * 100), 100);
 
@@ -100,17 +100,17 @@ export function DashboardCorretor() {
                 <Card className="p-4">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-text-muted font-medium uppercase tracking-wider">SLA Médio</p>
-                        <Clock size={16} className={slaMediaMin > 10 ? 'text-red-500' : 'text-green-500'} />
+                        <Clock size={16} className={slaMediaMin > 10 ? 'text-alert' : 'text-success'} />
                     </div>
-                    <p className={`text-3xl font-light ${slaMediaMin > 10 ? 'text-red-500' : ''}`}>{slaMediaMin}m</p>
-                    <p className={`text-xs mt-1 ${slaEstourados > 0 ? 'text-red-400' : 'text-text-muted'}`}>
+                    <p className={`text-3xl font-bold ${slaMediaMin > 10 ? 'text-alert' : ''}`}>{slaMediaMin}m</p>
+                    <p className={`text-xs mt-1 ${slaEstourados > 0 ? 'text-alert' : 'text-text-muted'}`}>
                         {slaEstourados > 0 ? `${slaEstourados} SLA estourado${slaEstourados > 1 ? 's' : ''}` : 'Dentro do limite'}
                     </p>
                 </Card>
                 <Card className="p-4">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Visitas Marcadas</p>
-                        <Calendar size={16} className="text-violet-500" />
+                        <Calendar size={16} className="text-info" />
                     </div>
                     <p className="text-3xl font-light">{visitasMarcadas}</p>
                     <p className="text-xs text-text-muted mt-1">{visitasHoje.length > 0 ? `${visitasHoje.length} hoje` : 'nenhuma hoje'}</p>
@@ -118,7 +118,7 @@ export function DashboardCorretor() {
                 <Card className="p-4">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Taxa de Conversão</p>
-                        <TrendingUp size={16} className="text-green-500" />
+                        <TrendingUp size={16} className="text-brand" />
                     </div>
                     <p className="text-3xl font-light">{taxaConversao}%</p>
                     <p className="text-xs text-text-muted mt-1">{vendas} venda{vendas !== 1 ? 's' : ''} no período</p>
@@ -133,8 +133,8 @@ export function DashboardCorretor() {
                     {/* Leads Prioritários */}
                     <div>
                         <div className="flex items-center gap-2 mb-3">
-                            <AlertCircle size={18} className="text-red-500" />
-                            <h3 className="font-semibold text-base">Leads que Precisam de Atenção</h3>
+                            <AlertCircle size={18} className="text-alert" />
+                            <h3 className="font-bold text-base">Leads que Precisam de Atenção</h3>
                         </div>
                         <PriorityLeadList />
                     </div>

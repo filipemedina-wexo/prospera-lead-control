@@ -54,7 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    // BYPASS TEMPORÁRIO PARA DESENVOLVIMENTO DE UI
+    setLoading(false);
+    setUser({ id: 'dummy-user', app_metadata: {}, user_metadata: {}, aud: 'authenticated', created_at: '' } as any);
+    
     // Get the initial session
+    /*
     supabase.auth.getSession().then(({ data }) => {
       const sessionUser = data.session?.user ?? null;
       setUser(sessionUser);
@@ -64,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setLoading(false);
       }
+    }).catch(() => {
+        // Fallback em caso de erro de rede do supabase (projeto pausado)
+        setLoading(false);
     });
 
     // Subscribe to auth state changes
@@ -81,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
+    */
   }, []);
 
   async function signOut() {

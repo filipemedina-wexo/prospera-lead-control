@@ -1,12 +1,25 @@
 import { Users, Clock, Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { useState } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { useState } from 'react';
 import { imobiliarias, corretores, leads, getSlaMinutes } from '../../data/mockData';
 import { cn } from '../../lib/utils';
 
 export function Imobiliarias() {
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [showInvite, setShowInvite] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviteSent, setInviteSent] = useState(false);
+
+    const handleInvite = (e: React.FormEvent) => {
+        e.preventDefault();
+        setInviteSent(true);
+        setTimeout(() => {
+            setShowInvite(false);
+            setInviteSent(false);
+            setInviteEmail('');
+        }, 3000);
+    };
 
     return (
         <div className="space-y-6">
@@ -15,11 +28,51 @@ export function Imobiliarias() {
                     <h1 className="text-2xl font-bold tracking-tight">Imobiliárias</h1>
                     <p className="text-text-secondary text-sm mt-1">{imobiliarias.length} parceiras ativas</p>
                 </div>
-                <Button className="self-start sm:self-auto">
+                <Button onClick={() => setShowInvite(true)} className="self-start sm:self-auto">
                     <Plus size={16} className="mr-2" />
-                    Nova Imobiliária
+                    Convidar Imobiliária
                 </Button>
             </div>
+
+            {showInvite && (
+                <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+                    <Card className="w-full max-w-md p-6">
+                        <h2 className="text-xl font-bold mb-2">Convidar Imobiliária Parceira</h2>
+                        <p className="text-sm text-text-muted mb-6">
+                            Envie um convite para que o próprio gestor cadastre os dados da imobiliária na rede.
+                        </p>
+                        
+                        {inviteSent ? (
+                            <div className="bg-green-50 text-green-700 p-4 rounded-xl text-center">
+                                <p className="font-semibold">Convite enviado com sucesso!</p>
+                                <p className="text-sm mt-1">O gestor já pode acessar o link e criar a conta.</p>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleInvite} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-text-secondary mb-1.5">E-mail do Gestor</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={inviteEmail}
+                                        onChange={e => setInviteEmail(e.target.value)}
+                                        placeholder="gestor@imobiliaria.com.br"
+                                        className="w-full px-3 py-2 rounded-xl border border-border bg-bg focus:outline-none focus:ring-2 focus:ring-brand/30"
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-3 pt-2">
+                                    <Button type="button" variant="ghost" onClick={() => setShowInvite(false)}>
+                                        Cancelar
+                                    </Button>
+                                    <Button type="submit" variant="primary">
+                                        Enviar Convite
+                                    </Button>
+                                </div>
+                            </form>
+                        )}
+                    </Card>
+                </div>
+            )}
 
             <div className="space-y-4">
                 {imobiliarias.map(imob => {

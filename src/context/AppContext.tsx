@@ -12,7 +12,16 @@ type PageId =
     | 'meus-empreendimentos'
     | 'lead-detalhe'
     | 'empreendimento-detalhe'
-    | 'configuracoes';
+    | 'novo-empreendimento'
+    | 'campanhas'
+    | 'campanha-detalhe'
+    | 'avisos'
+    | 'sorteio'
+    | 'configuracoes'
+    | 'admin-dashboard'
+    | 'admin-incorporadoras'
+    | 'admin-imobiliarias'
+    | 'admin-corretores';
 
 interface AppContextType {
     profile: UserProfile;
@@ -23,6 +32,8 @@ interface AppContextType {
     setSelectedLeadId: (id: string | null) => void;
     selectedEmpreendimentoId: string | null;
     setSelectedEmpreendimentoId: (id: string | null) => void;
+    selectedCampanhaId: string | null;
+    setSelectedCampanhaId: (id: string | null) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -37,12 +48,14 @@ export function AppProvider({ children, defaultProfile = 'incorporadora' }: AppP
     const [currentPage, setCurrentPage] = useState<PageId>('dashboard');
     const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
     const [selectedEmpreendimentoId, setSelectedEmpreendimentoId] = useState<string | null>(null);
+    const [selectedCampanhaId, setSelectedCampanhaId] = useState<string | null>(null);
 
     const setProfile = (p: UserProfile) => {
         setProfileState(p);
         setCurrentPage('dashboard');
         setSelectedLeadId(null);
         setSelectedEmpreendimentoId(null);
+        setSelectedCampanhaId(null);
     };
 
     return (
@@ -54,7 +67,9 @@ export function AppProvider({ children, defaultProfile = 'incorporadora' }: AppP
             selectedLeadId,
             setSelectedLeadId,
             selectedEmpreendimentoId,
-            setSelectedEmpreendimentoId
+            setSelectedEmpreendimentoId,
+            selectedCampanhaId,
+            setSelectedCampanhaId
         }}>
             {children}
         </AppContext.Provider>

@@ -10,9 +10,13 @@ import {
     getSlaMinutes,
     isSlaEstourado,
     type LeadStatus,
+    listaCampanhas
 } from '../../data/mockData';
+import { useApp } from '../../context/AppContext';
 
 export function DashboardIncorporadora() {
+    const { setCurrentPage, setSelectedCampanhaId } = useApp();
+
     // Compute metrics
     const totalLeads = leads.length;
     const slaEstourado = leads.filter(l => isSlaEstourado(l)).length;
@@ -41,6 +45,16 @@ export function DashboardIncorporadora() {
         nome: im.nome,
         count: leads.filter(l => l.imobiliariaId === im.id).length,
     })).sort((a, b) => b.count - a.count);
+
+    // Leads por Canal
+    const leadsByCanal = (() => {
+        const counts: Record<string, number> = {};
+        leads.forEach(l => {
+            const canal = l.origem?.canal || 'Outros (Não atribuído)';
+            counts[canal] = (counts[canal] || 0) + 1;
+        });
+        return Object.entries(counts).map(([nome, count]) => ({ nome, count })).sort((a, b) => b.count - a.count);
+    })();
 
     // Ranking corretores (by vendas, then visitas)
     // Ranking corretores (by Score)
@@ -81,47 +95,85 @@ export function DashboardIncorporadora() {
 
     const maxEmp = Math.max(...leadsByEmp.map(e => e.count), 1);
     const maxImob = Math.max(...leadsByImob.map(i => i.count), 1);
+    const maxCanal = Math.max(...leadsByCanal.map(c => c.count), 1);
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                <p className="text-text-secondary text-sm mt-1">Visão geral da operação — Construtora Horizonte</p>
+            {/* Hero de boas-vindas */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand to-brand/70 p-6 text-white shadow-lg">
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.3)_1px,transparent_0)] bg-[length:24px_24px]" />
+                <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <p className="text-white/70 text-sm font-medium">Visão geral da operação</p>
+                        <h1 className="text-2xl font-bold mt-0.5">Construtora Horizonte</h1>
+                    </div>
+                </div>
             </div>
+
+            {/* Banner de Campanhas Ativas (Se existirem) */}
+            {listaCampanhas.filter(c => c.ativa).length > 0 && (
+                <div 
+                    onClick={() => setCurrentPage('campanhas')}
+                    className="bg-lvl-gold/10 border border-lvl-gold/20 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer hover:bg-lvl-gold/20 transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-lvl-gold rounded-lg text-black">
+                            <Trophy size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-text-primary text-sm flex items-center gap-2">
+                                {listaCampanhas.filter(c => c.ativa).length} Campanhas de Incentivo no Ar!
+                                <span className="px-2 py-0.5 text-[9px] bg-green-500/20 text-green-400 rounded-full border border-green-500/30 uppercase tracking-widest animate-pulse">Live</span>
+                            </h3>
+                            <p className="text-xs text-text-secondary mt-0.5">As equipes estão engajadas. Clique para acompanhar a evolução.</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <div className="text-center bg-bg px-3 py-1.5 rounded-lg border border-border">
+                            <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Vidas Geradas</div>
+                            <div className="text-sm font-bold text-text-primary">1.240</div>
+                        </div>
+                        <div className="text-center bg-bg px-3 py-1.5 rounded-lg border border-border">
+                            <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Engajamento</div>
+                            <div className="text-sm font-bold text-text-primary text-lvl-gold">~40%</div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card variant="hover" className="p-5">
-                    <div className="flex items-center gap-2 text-text-muted mb-2">
-                        <Users size={16} />
-                        <span className="text-xs font-medium uppercase tracking-wider">Total Leads</span>
+                <Card variant="hover" className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Total Leads</p>
+                        <Users size={16} className="text-text-muted" />
                     </div>
-                    <p className="text-2xl font-bold">{totalLeads}</p>
+                    <p className="text-3xl font-bold">{totalLeads}</p>
                     <p className="text-xs text-text-muted mt-1">nos últimos 30 dias</p>
                 </Card>
 
-                <Card variant="hover" className="p-5">
-                    <div className="flex items-center gap-2 text-text-muted mb-2">
-                        <MapPin size={16} />
-                        <span className="text-xs font-medium uppercase tracking-wider">Taxa de Visita</span>
+                <Card variant="hover" className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Taxa de Visita</p>
+                        <MapPin size={16} className="text-brand" />
                     </div>
-                    <p className="text-2xl font-bold text-brand">{taxaVisita}%</p>
+                    <p className="text-3xl font-bold text-brand">{taxaVisita}%</p>
                     <p className="text-xs text-text-muted mt-1">{visitas} visitas de {totalLeads} leads</p>
                 </Card>
 
-                <Card variant="hover" className="p-5 relative overflow-hidden">
-                    <div className="flex items-center gap-2 text-text-muted mb-2">
-                        <Clock size={16} />
-                        <span className="text-xs font-medium uppercase tracking-wider">SLA Médio</span>
+                <Card variant="hover" className="p-4 relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">SLA Médio</p>
+                        <Clock size={16} className="text-text-muted" />
                     </div>
                     <div className="flex items-end justify-between">
-                        <p className="text-2xl font-bold">{avgSla} min</p>
+                        <p className="text-3xl font-bold">{avgSla} min</p>
                         <span className="text-xs text-text-muted mb-1">Meta: 5min</span>
                     </div>
                     <div className="mt-3 relative h-2 bg-black/5 rounded-full overflow-hidden">
                         <div className="absolute top-0 bottom-0 w-0.5 bg-black/20 z-10" style={{ left: `${(5 / Math.max(avgSla * 1.5, 15)) * 100}%` }} title="Meta" />
                         <div
-                            className={`h-full rounded-full transition-all duration-500 ${avgSla <= 5 ? 'bg-green-500' : avgSla <= 15 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                            className={`h-full rounded-full transition-all duration-500 ${avgSla <= 5 ? 'bg-success' : avgSla <= 15 ? 'bg-warning' : 'bg-alert'}`}
                             style={{ width: `${Math.min((avgSla / Math.max(avgSla * 1.5, 15)) * 100, 100)}%` }}
                         />
                     </div>
@@ -132,18 +184,18 @@ export function DashboardIncorporadora() {
                     </div>
                 </Card>
 
-                <Card variant="hover" className="p-5">
-                    <div className="flex items-center gap-2 text-text-muted mb-2">
-                        <AlertTriangle size={16} />
-                        <span className="text-xs font-medium uppercase tracking-wider">SLA Estourado</span>
+                <Card variant="hover" className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">SLA Estourado</p>
+                        <AlertTriangle size={16} className="text-text-muted" />
                     </div>
-                    <p className="text-2xl font-bold text-red-500">{slaEstourado}</p>
+                    <p className="text-3xl font-bold text-alert">{slaEstourado}</p>
                     <p className="text-xs text-text-muted mt-1">{slaPct}% dos leads</p>
                 </Card>
             </div>
 
             {/* Middle row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 {/* Funil */}
                 <Card variant="hover" className="lg:col-span-1 p-6">
                     <h2 className="text-base font-semibold mb-1">Funil de Vendas</h2>
@@ -170,7 +222,6 @@ export function DashboardIncorporadora() {
                     </div>
                 </Card>
 
-                {/* Leads por imobiliária */}
                 <Card variant="hover" className="p-6">
                     <h2 className="text-base font-semibold mb-1">Por Imobiliária</h2>
                     <p className="text-sm text-text-muted mb-4">Volume de leads</p>
@@ -182,7 +233,26 @@ export function DashboardIncorporadora() {
                                     <span className="text-text-muted shrink-0">{i.count}</span>
                                 </div>
                                 <div className="h-2 bg-black/5 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full bg-violet-500" style={{ width: `${(i.count / maxImob) * 100}%` }} />
+                                    <div className="h-full rounded-full bg-info" style={{ width: `${(i.count / maxImob) * 100}%` }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+
+                {/* Leads por Canal */}
+                <Card variant="hover" className="p-6">
+                    <h2 className="text-base font-semibold mb-1">Por Canal de Origem</h2>
+                    <p className="text-sm text-text-muted mb-4">Volume de leads</p>
+                    <div className="space-y-3">
+                        {leadsByCanal.map(c => (
+                            <div key={c.nome}>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="font-medium truncate mr-2">{c.nome}</span>
+                                    <span className="text-text-muted shrink-0">{c.count}</span>
+                                </div>
+                                <div className="h-2 bg-black/5 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full bg-purple-500" style={{ width: `${(c.count / maxCanal) * 100}%` }} />
                                 </div>
                             </div>
                         ))}
@@ -222,7 +292,7 @@ export function DashboardIncorporadora() {
                                         <div className="flex items-center gap-2">
                                             <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-brand text-xs font-bold relative">
                                                 {c.nome.charAt(0)}
-                                                {i === 0 && <Trophy className="absolute -top-1 -right-1 text-yellow-500 w-3 h-3" fill="currentColor" />}
+                                                {i === 0 && <Trophy className="absolute -top-1 -right-1 text-lvl-gold w-3 h-3" fill="currentColor" />}
                                             </div>
                                             <span className="font-medium">{c.nome}</span>
                                         </div>
@@ -238,7 +308,7 @@ export function DashboardIncorporadora() {
                                     <td className="py-3 text-center text-text-secondary">{c.interacoes}</td>
                                     <td className="py-3 text-center text-text-secondary">{c.tempoOnline}h</td>
                                     <td className="py-3 text-center">
-                                        <span className={c.slaAvg > 10 ? 'text-red-500 font-medium' : 'text-green-600'}>
+                                        <span className={c.slaAvg > 10 ? 'text-alert font-medium' : 'text-success'}>
                                             {c.slaAvg}m
                                         </span>
                                     </td>

@@ -9,6 +9,10 @@ import {
     ClipboardList,
     X,
     Shuffle,
+    Trophy,
+    Megaphone,
+    Info,
+    GraduationCap,
 } from 'lucide-react';
 import { useApp, type PageId } from '../../context/AppContext';
 import { type UserProfile } from '../../data/mockData';
@@ -22,12 +26,22 @@ interface NavItem {
 }
 
 const navByProfile: Record<UserProfile, NavItem[]> = {
+    admin: [
+        { icon: LayoutDashboard, label: 'Painel SaaS', id: 'admin-dashboard' },
+        { icon: Building2, label: 'Incorporadoras', id: 'admin-incorporadoras' },
+        { icon: Store, label: 'Imobiliárias', id: 'admin-imobiliarias' },
+        { icon: Users, label: 'Corretores', id: 'admin-corretores' },
+    ],
     incorporadora: [
         { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
         { icon: ClipboardList, label: 'Leads', id: 'leads' },
+        { icon: Trophy, label: 'Campanhas', id: 'campanhas' },
         { icon: Building2, label: 'Empreendimentos', id: 'empreendimentos' },
         { icon: Store, label: 'Imobiliárias', id: 'imobiliarias' },
+        { icon: Megaphone, label: 'Avisos', id: 'avisos' },
+        { icon: GraduationCap, label: 'Academia', id: 'academia' as PageId },
         { icon: Settings, label: 'Configurações', id: 'configuracoes' },
+        { icon: Info, label: 'Onboarding (Teste)', id: 'onboarding' as PageId },
     ],
     imobiliaria: [
         { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
@@ -35,11 +49,17 @@ const navByProfile: Record<UserProfile, NavItem[]> = {
         { icon: Building2, label: 'Empreendimentos', id: 'empreendimentos' },
         { icon: Users, label: 'Corretores', id: 'corretores' },
         { icon: Shuffle, label: 'Distribuição', id: 'distribuicao' },
+        { icon: GraduationCap, label: 'Academia', id: 'academia' as PageId },
+        { icon: Settings, label: 'Configurações', id: 'configuracoes' },
+        { icon: Info, label: 'Onboarding (Teste)', id: 'onboarding' as PageId },
     ],
     corretor: [
         { icon: LayoutDashboard, label: 'Dashboard', id: 'dashboard' },
         { icon: ClipboardList, label: 'Meus Leads', id: 'meus-leads' },
         { icon: Building2, label: 'Empreendimentos', id: 'meus-empreendimentos' },
+        { icon: GraduationCap, label: 'Academia', id: 'academia' as PageId },
+        { icon: Settings, label: 'Configurações', id: 'configuracoes' },
+        { icon: Info, label: 'Onboarding (Teste)', id: 'onboarding' as PageId },
     ],
 };
 
@@ -98,6 +118,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
                         return (
                             <button
                                 key={item.id}
+                                id={`tour-${item.id}`} // O Tour usa esse ID para buscar o elemento
                                 onClick={() => handleNavClick(item.id)}
                                 className={cn(
                                     'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group cursor-pointer overflow-hidden',

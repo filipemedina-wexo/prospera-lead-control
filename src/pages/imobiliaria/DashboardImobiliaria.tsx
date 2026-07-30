@@ -10,17 +10,20 @@ import {
     getSlaMinutes,
     isSlaEstourado,
     type LeadStatus,
+    listaCampanhas
 } from '../../data/mockData';
+import { useApp } from '../../context/AppContext';
 
 const IMOB_ID = 'imob-1';
 
 function VariacaoIcon({ v }: { v: number }) {
-    if (v > 0) return <TrendingUp size={14} className="text-green-500" />;
-    if (v < 0) return <TrendingDown size={14} className="text-red-500" />;
+    if (v > 0) return <TrendingUp size={14} className="text-success" />;
+    if (v < 0) return <TrendingDown size={14} className="text-alert" />;
     return <Minus size={14} className="text-text-muted" />;
 }
 
 export function DashboardImobiliaria() {
+    const { setCurrentPage } = useApp();
     const imobLeads = leads.filter(l => l.imobiliariaId === IMOB_ID);
     const imobCorretores = corretores.filter(c => c.imobiliariaId === IMOB_ID && c.ativo);
 
@@ -84,21 +87,54 @@ export function DashboardImobiliaria() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-                <p className="text-text-secondary text-sm mt-1">Visão gerencial — Imobiliária Prime</p>
+            {/* Hero de boas-vindas */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand to-brand/70 p-6 text-white shadow-lg">
+                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.3)_1px,transparent_0)] bg-[length:24px_24px]" />
+                <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <p className="text-white/70 text-sm font-medium">Visão gerencial</p>
+                        <h1 className="text-2xl font-bold mt-0.5">Imobiliária Prime</h1>
+                    </div>
+                </div>
             </div>
+
+            {/* Banner de Campanhas Ativas (Se existirem) */}
+            {listaCampanhas.filter(c => c.ativa).length > 0 && (
+                <div 
+                    onClick={() => setCurrentPage('campanhas')}
+                    className="bg-lvl-gold/10 border border-lvl-gold/20 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer hover:bg-lvl-gold/20 transition-colors"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-lvl-gold rounded-lg text-black">
+                            <Trophy size={20} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-text-primary text-sm flex items-center gap-2">
+                                A Incorporadora lançou {listaCampanhas.filter(c => c.ativa).length} {listaCampanhas.filter(c => c.ativa).length > 1 ? 'Campanhas' : 'Campanha'} de Vendas!
+                                <span className="px-2 py-0.5 text-[9px] bg-green-500/20 text-green-400 rounded-full border border-green-500/30 uppercase tracking-widest animate-pulse">Live</span>
+                            </h3>
+                            <p className="text-xs text-text-secondary mt-0.5">Motive sua equipe a participar e bater as metas para ganhar os prêmios.</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4">
+                        <div className="text-center bg-bg px-3 py-1.5 rounded-lg border border-border">
+                            <div className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Tamanho do Time</div>
+                            <div className="text-sm font-bold text-text-primary text-lvl-gold">{imobCorretores.length} corretores</div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Alertas de Time */}
             {alertas.length > 0 && (
-                <Card className="p-4 border-amber-300 bg-amber-50/40">
+                <Card className="p-4 border-warning/30 bg-warning-bg">
                     <div className="flex items-start gap-3">
-                        <AlertCircle size={20} className="text-amber-500 shrink-0 mt-0.5" />
+                        <AlertCircle size={20} className="text-warning shrink-0 mt-0.5" />
                         <div>
-                            <p className="font-semibold text-amber-800 text-sm">Atenção necessária</p>
+                            <p className="font-semibold text-warning text-sm">Atenção necessária</p>
                             <div className="mt-1 space-y-0.5">
                                 {alertas.map(a => (
-                                    <p key={a.corretor.id} className="text-xs text-amber-700">
+                                    <p key={a.corretor.id} className="text-xs text-warning/80">
                                         <span className="font-medium">{a.corretor.nome}</span> tem {a.leadsParados} lead{a.leadsParados > 1 ? 's' : ''} sem contato há mais de 1h
                                     </p>
                                 ))}
@@ -111,44 +147,44 @@ export function DashboardImobiliaria() {
             {/* KPIs — foco em atividades de processo */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Contatos feitos */}
-                <Card variant="hover" className="p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                        <PhoneCall size={15} className="text-brand" />
-                        <span className="text-xs font-medium uppercase tracking-wider text-text-muted">Contatos</span>
+                <Card variant="hover" className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Contatos</p>
+                        <PhoneCall size={16} className="text-brand" />
                     </div>
-                    <p className="text-2xl font-bold">{contatos}</p>
+                    <p className="text-3xl font-bold">{contatos}</p>
                     <p className="text-xs text-text-muted mt-1">{taxaContato}% dos leads</p>
                 </Card>
 
                 {/* Follow-ups */}
-                <Card variant="hover" className="p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                        <MessageSquare size={15} className="text-violet-500" />
-                        <span className="text-xs font-medium uppercase tracking-wider text-text-muted">Follow-ups</span>
+                <Card variant="hover" className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Follow-ups</p>
+                        <MessageSquare size={16} className="text-info" />
                     </div>
-                    <p className="text-2xl font-bold text-violet-600">{followUps}</p>
+                    <p className="text-3xl font-bold text-info">{followUps}</p>
                     <p className="text-xs text-text-muted mt-1">Interações registradas</p>
                 </Card>
 
                 {/* Visitas marcadas */}
-                <Card variant="hover" className="p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                        <CalendarCheck size={15} className="text-emerald-500" />
-                        <span className="text-xs font-medium uppercase tracking-wider text-text-muted">Visitas</span>
+                <Card variant="hover" className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Visitas</p>
+                        <CalendarCheck size={16} className="text-success" />
                     </div>
-                    <p className="text-2xl font-bold text-emerald-600">{visitasMarcadas}</p>
+                    <p className="text-3xl font-bold text-success">{visitasMarcadas}</p>
                     <p className="text-xs text-text-muted mt-1">{taxaVisita}% chegaram à visita</p>
                 </Card>
 
                 {/* SLA */}
-                <Card variant="hover" className="p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                        <Clock size={15} className="text-brand" />
-                        <span className="text-xs font-medium uppercase tracking-wider text-text-muted">SLA Médio</span>
+                <Card variant="hover" className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">SLA Médio</p>
+                        <Clock size={16} className="text-brand" />
                     </div>
-                    <p className={`text-2xl font-bold ${avgSla <= 5 ? 'text-green-600' : avgSla <= 10 ? 'text-amber-500' : 'text-red-500'}`}>{avgSla}min</p>
+                    <p className={`text-3xl font-bold ${avgSla <= 5 ? 'text-success' : avgSla <= 10 ? 'text-warning' : 'text-alert'}`}>{avgSla}min</p>
                     <div className="mt-2 h-1.5 bg-black/5 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${avgSla <= 5 ? 'bg-green-500' : avgSla <= 10 ? 'bg-amber-400' : 'bg-red-500'}`}
+                        <div className={`h-full rounded-full ${avgSla <= 5 ? 'bg-success' : avgSla <= 10 ? 'bg-warning' : 'bg-alert'}`}
                             style={{ width: `${Math.min((avgSla / 15) * 100, 100)}%` }} />
                     </div>
                     <p className="text-[10px] text-text-muted mt-0.5">Meta: ≤5min · {slaEstourado} estourados</p>
@@ -180,7 +216,7 @@ export function DashboardImobiliaria() {
                                     <div className="flex items-center gap-1">
                                         <VariacaoIcon v={suaImob.variacao} />
                                         {suaImob.variacao !== 0 && (
-                                            <span className={`text-xs font-medium ${suaImob.variacao > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                            <span className={`text-xs font-medium ${suaImob.variacao > 0 ? 'text-success' : 'text-alert'}`}>
                                                 {suaImob.variacao > 0 ? '+' : ''}{suaImob.variacao}
                                             </span>
                                         )}
@@ -194,7 +230,7 @@ export function DashboardImobiliaria() {
                     <div className="space-y-2">
                         {rankingImobiliarias.map(r => (
                             <div key={r.posicao} className={`flex items-center gap-3 py-2 px-3 rounded-lg transition-colors ${r.ehSuaImob ? 'bg-brand/5 border border-brand/20' : 'hover:bg-black/[0.02]'}`}>
-                                <span className={`text-sm font-bold w-5 ${r.posicao === 1 ? 'text-yellow-500' : 'text-text-muted'}`}>
+                                <span className={`text-sm font-bold w-5 ${r.posicao === 1 ? 'text-lvl-gold' : 'text-text-muted'}`}>
                                     {r.posicao}
                                 </span>
                                 <div className="flex-1 min-w-0">
@@ -235,7 +271,7 @@ export function DashboardImobiliaria() {
                                 <th className="text-center pb-3 font-medium">SLA</th>
                                 <th className="text-center pb-3 font-medium">Score</th>
                                 <th className="text-center pb-3 font-medium">
-                                    <Trophy size={12} className="text-yellow-400 mx-auto" />
+                                    <Trophy size={12} className="text-lvl-gold mx-auto" />
                                 </th>
                             </tr>
                         </thead>
@@ -243,7 +279,7 @@ export function DashboardImobiliaria() {
                             {ranking.map((c, i) => (
                                 <tr key={c.id} className="border-b border-border/40 last:border-0 hover:bg-black/[0.01]">
                                     <td className="py-3">
-                                        <span className={`text-sm font-bold ${i === 0 ? 'text-yellow-500' : 'text-text-muted'}`}>{i + 1}</span>
+                                        <span className={`text-sm font-bold ${i === 0 ? 'text-lvl-gold' : 'text-text-muted'}`}>{i + 1}</span>
                                     </td>
                                     <td className="py-3">
                                         <div className="flex items-center gap-2">
@@ -264,13 +300,13 @@ export function DashboardImobiliaria() {
                                         <span className="text-sm font-semibold text-brand">{c.contatos}</span>
                                     </td>
                                     <td className="py-3 text-center">
-                                        <span className="text-sm font-semibold text-violet-600">{c.followUps}</span>
+                                        <span className="text-sm font-semibold text-info">{c.followUps}</span>
                                     </td>
                                     <td className="py-3 text-center">
-                                        <span className="text-sm font-semibold text-emerald-600">{c.visitas}</span>
+                                        <span className="text-sm font-semibold text-success">{c.visitas}</span>
                                     </td>
                                     <td className="py-3 text-center">
-                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.slaAvg <= 5 ? 'bg-green-50 text-green-700' : c.slaAvg <= 10 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'}`}>
+                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.slaAvg <= 5 ? 'bg-success-bg text-success' : c.slaAvg <= 10 ? 'bg-warning-bg text-warning' : 'bg-alert-bg text-alert'}`}>
                                             {c.slaAvg}min
                                         </span>
                                     </td>
@@ -281,8 +317,8 @@ export function DashboardImobiliaria() {
                                     <td className="py-3 text-center">
                                         {c.vendas > 0 ? (
                                             <div className="flex items-center justify-center gap-1">
-                                                <Trophy size={14} className="text-yellow-500" fill="currentColor" />
-                                                <span className="text-xs font-bold text-yellow-600">{c.vendas}</span>
+                                                <Trophy size={14} className="text-lvl-gold" fill="currentColor" />
+                                                <span className="text-xs font-bold text-lvl-gold">{c.vendas}</span>
                                             </div>
                                         ) : (
                                             <span className="text-text-muted text-xs">—</span>
