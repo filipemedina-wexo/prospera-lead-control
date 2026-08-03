@@ -18,7 +18,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
     const { profile, currentPage, setCurrentPage } = useApp();
     const isLiveMode = import.meta.env.VITE_APP_MODE === 'live';
     const liveNav: Partial<Record<UserProfile, NavItem[]>> = {
-        incorporadora: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }],
+        incorporadora: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }, { icon: Megaphone, label: 'Captação', id: 'captacao' }],
         gestora_lancamentos: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }],
         corretor: [{ icon: ClipboardList, label: 'Meus leads', id: 'meus-leads' }],
     };

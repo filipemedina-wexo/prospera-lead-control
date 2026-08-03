@@ -23,6 +23,7 @@ import { CampanhaDetalhe } from './pages/incorporadora/CampanhaDetalhe';
 import { AvisosIncorporadora } from './pages/incorporadora/AvisosIncorporadora';
 import { SalaSorteio } from './pages/incorporadora/SalaSorteio';
 import { ConfiguracoesIncorporadora } from './pages/incorporadora/ConfiguracoesIncorporadora';
+import { ConfiguracaoCaptacao } from './pages/incorporadora/ConfiguracaoCaptacao';
 
 // Imobiliária pages
 import { DashboardImobiliaria } from './pages/imobiliaria/DashboardImobiliaria';
@@ -112,6 +113,7 @@ function PageRouter() {
             case 'distribuicao': return <RoletaLeads />;
             case 'campanhas': return <CampanhasIncorporadora />;
             case 'configuracoes': return <ConfiguracoesIncorporadora />;
+            case 'captacao': return <ConfiguracaoCaptacao />;
             default: return <DashboardIncorporadora />;
         }
     }

@@ -13,6 +13,7 @@ type PageId =
     | 'lead-detalhe'
     | 'empreendimento-detalhe'
     | 'novo-empreendimento'
+    | 'captacao'
     | 'campanhas'
     | 'campanha-detalhe'
     | 'avisos'
