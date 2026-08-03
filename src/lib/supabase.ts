@@ -16,9 +16,10 @@ export type Database = {
         Row: {
           id: string
           incorporadora_id: string | null
+          gestora_id: string | null
           imobiliaria_id: string | null
           corretor_id: string | null
-          role: 'incorporadora' | 'imobiliaria' | 'corretor'
+          role: 'incorporadora' | 'gestora_lancamentos' | 'imobiliaria' | 'corretor'
           nome: string | null
           email: string | null
           criado_em: string

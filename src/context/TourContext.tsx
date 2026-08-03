@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useApp } from './AppContext';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 interface TourStep {
     targetId: string;
@@ -17,7 +16,7 @@ interface UserProgress {
 interface TourContextValue {
     // Gamification
     progress: UserProgress;
-    addXp: (amount: number, reason: string) => void;
+    addXp: (amount: number, _reason: string) => void;
     
     // Tour
     activeTour: string | null;
@@ -33,7 +32,6 @@ interface TourContextValue {
 const TourContext = createContext<TourContextValue | undefined>(undefined);
 
 export function TourProvider({ children }: { children: ReactNode }) {
-    const { profile } = useApp();
     const [progress, setProgress] = useState<UserProgress>({
         xp: 0,
         level: 1,
@@ -41,7 +39,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
     });
 
     // XP Logic
-    const addXp = (amount: number, reason: string) => {
+    const addXp = (amount: number, _reason: string) => {
         setProgress(prev => {
             const nextXp = prev.xp + amount;
             const nextLevel = Math.floor(nextXp / 100) + 1; // 100 XP per level dummy math

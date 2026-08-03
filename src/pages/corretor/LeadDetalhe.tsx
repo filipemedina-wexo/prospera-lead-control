@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Phone, MapPin, MessageSquarePlus, Send, Ban, Clock, Zap, ArrowRight, Calendar, CheckCircle2, XCircle, Share2, PhoneMissed, PhoneOff, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, MessageSquarePlus, Send, Ban, Clock, Zap, ArrowRight, Calendar, CheckCircle2, XCircle, Share2, PhoneMissed, PhoneOff, AlertTriangle, Eye } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -8,11 +8,11 @@ import { TagTextarea, detectCompoundTags, detectSimpleTags, sentimentoConfig, ty
 import { StatusPipeline } from '../../components/ui/StatusPipeline';
 import { useApp } from '../../context/AppContext';
 import {
-    leads,
     getEmpreendimento,
     statusLabels,
     type LeadStatus,
 } from '../../data/mockData';
+import { atualizarLead, marcarLeadComoLido, useLead } from '../../lib/leadRepository';
 import { triggerReward } from '../../utils/confetti';
 
 interface Nota {
@@ -45,6 +45,7 @@ function formatElapsed(ms: number): string {
 
 export function LeadDetalhe() {
     const { selectedLeadId, setCurrentPage } = useApp();
+    const { item: loadedLead, setItem: setLoadedLead, loading: leadLoading } = useLead(selectedLeadId);
     const [showLostModal, setShowLostModal] = useState(false);
     const [motivoPerdido, setMotivoPerdido] = useState('');
     const [notaTexto, setNotaTexto] = useState('');
@@ -67,6 +68,7 @@ export function LeadDetalhe() {
     ]);
     const [tentativasContato, setTentativasContato] = useState(0);
     const [autoCloseWarning, setAutoCloseWarning] = useState(false);
+    const [, setReadVersion] = useState(0);
 
     // Live SLA timer
     const [now, setNow] = useState(Date.now());
@@ -77,6 +79,8 @@ export function LeadDetalhe() {
 
     const salvarNota = () => {
         if (!notaTexto.trim()) return;
+        const statusToPersist = pendingStatus;
+        const noteToPersist = notaTexto;
         const nova: Nota = {
             id: `nota-${Date.now()}`,
             texto: notaTexto,
@@ -107,6 +111,10 @@ export function LeadDetalhe() {
         setPendingStatus(null);
         setDataVisita('');
         setHoraVisita('');
+        if (statusToPersist && lead) {
+            const visitAt = statusToPersist === 'visita_marcada' && dataVisita && horaVisita ? `${dataVisita}T${horaVisita}:00` : undefined;
+            void atualizarLead(lead.id, statusToPersist, noteToPersist, visitAt).catch(() => undefined);
+        }
     };
 
     const handleConfirmVisit = () => {
@@ -144,6 +152,7 @@ export function LeadDetalhe() {
 
             // Update lead status directly (mock)
             lead!.status = status;
+            void atualizarLead(lead!.id, status, 'Atendimento iniciado').catch(() => undefined);
 
             // Add auto system note
             const nova: Nota = {
@@ -196,7 +205,23 @@ export function LeadDetalhe() {
         setPendingStatus(null);
     };
 
-    const lead = leads.find(l => l.id === selectedLeadId);
+    const lead = loadedLead;
+
+    // Abrir o detalhe confirma somente a leitura: não altera etapa nem conta como contato.
+    useEffect(() => {
+        if (!lead || lead.visualizadoEm) return;
+        const visualizadoEm = new Date().toISOString();
+        void marcarLeadComoLido(lead.id).then(readAt => setLoadedLead(current => current ? { ...current, visualizadoEm: readAt } : current)).catch(() => undefined);
+        lead.visualizadoEm = visualizadoEm;
+        lead.historico.unshift({
+            id: `lead-visto-${lead.id}`,
+            data: visualizadoEm,
+            tipo: 'lead_visualizado',
+            descricao: 'Lead visualizado pelo corretor',
+            autor: 'João Mendes',
+        });
+        setReadVersion(version => version + 1);
+    }, [lead]);
 
     // Simulate Auto-Close check on mount
     useEffect(() => {
@@ -209,6 +234,10 @@ export function LeadDetalhe() {
             }
         }
     }, [lead]);
+
+    if (leadLoading) {
+        return <div className="text-center py-20"><p className="text-text-muted">Carregando lead...</p></div>;
+    }
 
     if (!lead) {
         return (
@@ -350,6 +379,7 @@ export function LeadDetalhe() {
                         <h1 className="text-lg sm:text-xl font-bold leading-tight">{lead.nome}</h1>
                         <div className="flex flex-wrap items-center gap-2 mt-1">
                             <StatusBadge status={lead.status} />
+                            {lead.visualizadoEm && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-violet-50 text-violet-700 border border-violet-100"><Eye size={12} /> Visto {new Date(lead.visualizadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}
                             <button
                                 onClick={() => {
                                     const url = `${window.location.protocol}//${window.location.host}/#/apresentacao/${lead.publicToken || 'demo'}`;
@@ -456,7 +486,15 @@ export function LeadDetalhe() {
                     !isPerdido && (
                         <div className="mb-2">
                             <div className="mb-6">
-                                <p className="text-xs text-text-muted font-medium uppercase tracking-wider mb-3">Fluxo de Atendimento</p>
+                                <div className="flex items-end justify-between gap-3 mb-3">
+                                    <div>
+                                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Fluxo de Atendimento</p>
+                                        <p className="text-sm text-text-secondary mt-1">Acompanhe o avanço deste lead em uma única visão.</p>
+                                    </div>
+                                    <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-brand bg-brand/5 border border-brand/10 rounded-full px-2.5 py-1 whitespace-nowrap">
+                                        Etapa atual: {statusLabels[lead.status]}
+                                    </span>
+                                </div>
                                 <StatusPipeline
                                     currentStatus={lead.status}
                                     statusList={statusFlow}
@@ -540,6 +578,15 @@ export function LeadDetalhe() {
                                         <button
                                             disabled={!motivoPerdido.trim()}
                                             className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            onClick={() => {
+                                                if (!lead) return;
+                                                const reason = motivoPerdido.trim();
+                                                lead.status = 'perdido';
+                                                lead.motivoPerdido = reason;
+                                                setLoadedLead({ ...lead });
+                                                setShowLostModal(false);
+                                                void atualizarLead(lead.id, 'perdido', undefined, undefined, reason).catch(() => undefined);
+                                            }}
                                         >
                                             Confirmar Perda
                                         </button>

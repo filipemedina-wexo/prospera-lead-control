@@ -21,7 +21,9 @@ type PageId =
     | 'admin-dashboard'
     | 'admin-incorporadoras'
     | 'admin-imobiliarias'
-    | 'admin-corretores';
+    | 'admin-corretores'
+    | 'academia'
+    | 'onboarding';
 
 interface AppContextType {
     profile: UserProfile;

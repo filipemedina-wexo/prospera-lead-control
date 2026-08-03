@@ -102,6 +102,20 @@ function PageRouter() {
         }
     }
 
+    if (profile === 'gestora_lancamentos') {
+        switch (currentPage) {
+            case 'dashboard': return <DashboardIncorporadora />;
+            case 'leads': return <LeadsIncorporadora />;
+            case 'empreendimentos': return <GestaoEmpreendimentos />;
+            case 'corretores': return <Corretores />;
+            case 'imobiliarias': return <Imobiliarias />;
+            case 'distribuicao': return <RoletaLeads />;
+            case 'campanhas': return <CampanhasIncorporadora />;
+            case 'configuracoes': return <ConfiguracoesIncorporadora />;
+            default: return <DashboardIncorporadora />;
+        }
+    }
+
     if (profile === 'imobiliaria') {
         switch (currentPage) {
             case 'dashboard': return <DashboardImobiliaria />;
@@ -120,7 +134,6 @@ function PageRouter() {
             case 'meus-leads': return <MeusLeads />;
             case 'meus-empreendimentos': return <CatalogoEmpreendimentos />;
             case 'lead-detalhe': return <LeadDetalhe />;
-            case 'empreendimento-detalhe': return <EmpreendimentoDetalhe />;
             case 'configuracoes': return <ConfiguracoesCorretor />;
             default: return <DashboardCorretor />;
         }
@@ -134,7 +147,7 @@ function AppContent() {
     const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
 
     return (
-        <Layout onMenuToggle={() => setSidebarMobileOpen(true)}>
+        <Layout sidebarCollapsed={sidebarCollapsed} onMenuToggle={() => setSidebarMobileOpen(true)}>
             <Sidebar
                 collapsed={sidebarCollapsed}
                 onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -143,7 +156,7 @@ function AppContent() {
             />
             <TourOverlay />
             <div className={sidebarCollapsed ? 'md:ml-16 transition-all duration-300' : 'md:ml-56 transition-all duration-300'}>
-                <div className="max-w-[1280px] mx-auto p-4 md:p-6">
+                <div className="max-w-[1280px] mx-auto">
                     <PageRouter />
                 </div>
             </div>
@@ -180,7 +193,7 @@ function AppWithAuth() {
     if (!user) return <Login />;
 
     // Authenticated → show main app, initialize profile from auth data
-    const defaultProfile = (authProfile?.role ?? 'incorporadora') as 'incorporadora' | 'imobiliaria' | 'corretor';
+    const defaultProfile = (authProfile?.role ?? 'incorporadora') as 'incorporadora' | 'gestora_lancamentos' | 'imobiliaria' | 'corretor';
 
     return (
         <AppProvider defaultProfile={defaultProfile}>

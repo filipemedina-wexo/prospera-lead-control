@@ -3,7 +3,7 @@ import { Building2, Search, Plus, MoreVertical, CreditCard, ShieldAlert, CheckCi
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 
-type Incorporadora = { id: string; nome: string; email: string; plano: string; status: string; leadsMes: number; pgmt: string };
+type Incorporadora = { id: string; nome: string; email: string; plano: string; status: string; leadsMes: number; pgmt: string; senha?: string };
 
 const initialMock: Incorporadora[] = [
     { id: '1', nome: 'Cyrela', email: 'admin@cyrela.com', plano: 'Enterprise', status: 'Ativo', leadsMes: 4500, pgmt: 'Em dia' },
@@ -73,7 +73,7 @@ export function GestaoIncorporadoras() {
                 leadsMes: formData.leadsMes || 1000
             };
             // Aqui enviariamos email/senha para o Supabase e chamaríamos a edge function para disparar email de boas vindas
-            alert(`SaaS Criado com Sucesso!\nE-mail: ${newItem.email}\nSenha Inicial: ${(formData as any).senha || '***'}\n\nO cliente recebeu um disparo de boas vindas com essas credenciais.`);
+            alert(`SaaS Criado com Sucesso!\nE-mail: ${newItem.email}\nSenha Inicial: ${formData.senha || '***'}\n\nO cliente recebeu um disparo de boas vindas com essas credenciais.`);
             setData([newItem, ...data]);
         }
         setIsModalOpen(false);
@@ -235,7 +235,7 @@ export function GestaoIncorporadoras() {
                                         disabled={!!editingId}
                                         className="w-full bg-black/5 border border-border rounded-lg px-3 py-2 focus:border-brand/50 outline-none disabled:opacity-50" 
                                         placeholder={editingId ? "******** (Intocável)" : "Senha que será enviada"}
-                                        value={(formData as any).senha || ''}
+                                        value={formData.senha || ''}
                                         onChange={e => setFormData({...formData, senha: e.target.value})}
                                     />
                                 </div>

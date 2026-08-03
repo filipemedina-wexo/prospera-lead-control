@@ -1,148 +1,54 @@
-import { Phone, AlertCircle, MessageCircle } from 'lucide-react';
-import { Card } from '../../components/ui/Card';
+import { AlertCircle, ArrowUpRight, LayoutGrid, ListFilter, MessageCircle, Phone, Search, SlidersHorizontal, UsersRound, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import {
-    leads,
-    getEmpreendimento,
-    statusLabels,
-    type Lead,
-    type LeadStatus,
-} from '../../data/mockData';
+import { getEmpreendimento, statusLabels, type Lead, type LeadStatus } from '../../data/mockData';
+import { useAuth } from '../../context/AuthContext';
+import { useBrokerLeads } from '../../lib/leadRepository';
 
-const CORRETOR_ID = 'cor-1';
-
-const STATUS_GROUPS: { status: LeadStatus; color: string }[] = [
-    { status: 'novo',            color: 'text-amber-600 bg-amber-50 border-amber-200' },
-    { status: 'em_atendimento',  color: 'text-blue-600 bg-blue-50 border-blue-200' },
-    { status: 'contatado',       color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
-    { status: 'visita_marcada',  color: 'text-violet-600 bg-violet-50 border-violet-200' },
-    { status: 'proposta',        color: 'text-orange-600 bg-orange-50 border-orange-200' },
-    { status: 'venda',           color: 'text-green-600 bg-green-50 border-green-200' },
-    { status: 'perdido',         color: 'text-slate-500 bg-slate-50 border-slate-200' },
+const GROUPS: { status: LeadStatus; color: string }[] = [
+    { status: 'novo', color: 'text-amber-600 bg-amber-50 border-amber-200' },
+    { status: 'em_atendimento', color: 'text-blue-600 bg-blue-50 border-blue-200' },
+    { status: 'contatado', color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
+    { status: 'visita_marcada', color: 'text-violet-600 bg-violet-50 border-violet-200' },
+    { status: 'proposta', color: 'text-orange-600 bg-orange-50 border-orange-200' },
+    { status: 'venda', color: 'text-green-600 bg-green-50 border-green-200' },
+    { status: 'perdido', color: 'text-slate-500 bg-slate-50 border-slate-200' },
 ];
 
 export function MeusLeads() {
     const { setCurrentPage, setSelectedLeadId } = useApp();
+    const { profile } = useAuth();
+    const { items: mine, loading, error } = useBrokerLeads(profile?.corretor_id);
+    const [view, setView] = useState<'stages' | 'list'>('stages');
+    const [query, setQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState<LeadStatus | 'todos'>('todos');
+    const [empreendimentoFilter, setEmpreendimentoFilter] = useState('todos');
+    const empreendimentos = useMemo(() => Array.from(new Map(mine.map(lead => [lead.empreendimentoId, { id: lead.empreendimentoId, nome: lead.empreendimentoNome || getEmpreendimento(lead.empreendimentoId)?.nome || 'Empreendimento' }])).values()), [mine]);
+    const filtered = useMemo(() => mine.filter(lead => {
+        const search = `${lead.nome} ${lead.telefone} ${lead.empreendimentoNome || getEmpreendimento(lead.empreendimentoId)?.nome || ''}`.toLowerCase();
+        return search.includes(query.trim().toLowerCase()) && (statusFilter === 'todos' || lead.status === statusFilter) && (empreendimentoFilter === 'todos' || lead.empreendimentoId === empreendimentoFilter);
+    }), [mine, query, statusFilter, empreendimentoFilter]);
+    const groups = GROUPS.map(group => ({ ...group, leads: filtered.filter(lead => lead.status === group.status).sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()) })).filter(group => group.leads.length > 0);
+    const pending = mine.filter(lead => lead.status === 'novo').length;
+    const open = (lead: Lead) => { setSelectedLeadId(lead.id); setCurrentPage('lead-detalhe'); };
+    const hasFilters = query || statusFilter !== 'todos' || empreendimentoFilter !== 'todos';
+    const clearFilters = () => { setQuery(''); setStatusFilter('todos'); setEmpreendimentoFilter('todos'); };
 
-    const meusLeads = leads.filter(l => l.corretorId === CORRETOR_ID);
-    const pendentes = meusLeads.filter(l => l.status === 'novo').length;
-
-    const openLead = (lead: Lead) => {
-        setSelectedLeadId(lead.id);
-        setCurrentPage('lead-detalhe');
-    };
-
-    const groups = STATUS_GROUPS
-        .map(g => ({
-            ...g,
-            leads: meusLeads
-                .filter(l => l.status === g.status)
-                .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()),
-        }))
-        .filter(g => g.leads.length > 0);
-
-    return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">Meus Leads</h1>
-                <p className="text-text-secondary text-sm mt-1">{meusLeads.length} leads atribuídos — João Mendes</p>
-            </div>
-
-            {/* Status summary bar */}
-            <div className="flex flex-wrap gap-2">
-                {groups.map(g => (
-                    <span key={g.status} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${g.color}`}>
-                        <span className="font-bold">{g.leads.length}</span>
-                        {statusLabels[g.status]}
-                    </span>
-                ))}
-            </div>
-
-            {pendentes > 0 && (
-                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                    <AlertCircle size={18} className="text-amber-600 shrink-0" />
-                    <p className="text-sm text-amber-800 font-medium">
-                        Você tem <span className="font-bold">{pendentes}</span> lead{pendentes > 1 ? 's' : ''} aguardando primeiro contato!
-                    </p>
-                </div>
-            )}
-
-            <div className="space-y-8">
-                {groups.map(group => (
-                    <div key={group.status}>
-                        <div className="flex items-center gap-3 mb-3">
-                            <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${group.color}`}>
-                                {group.leads.length}
-                            </span>
-                            <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                                {statusLabels[group.status]}
-                            </h2>
-                            <div className="flex-1 h-px bg-border" />
-                        </div>
-
-                        <div className="space-y-2">
-                            {group.leads.map(lead => {
-                                const emp = getEmpreendimento(lead.empreendimentoId);
-                                const timeAgo = getTimeAgo(new Date(lead.criadoEm));
-
-                                return (
-                                    <Card
-                                        key={lead.id}
-                                        variant="hover"
-                                        className="p-4 cursor-pointer"
-                                        onClick={() => openLead(lead)}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0 font-bold text-sm text-brand">
-                                                    {lead.nome.charAt(0)}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-semibold truncate">{lead.nome}</p>
-                                                    <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
-                                                        <span>{emp?.nome}</span>
-                                                        <span>·</span>
-                                                        <span>{timeAgo}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <a
-                                                    href={`tel:${lead.telefone}`}
-                                                    onClick={e => e.stopPropagation()}
-                                                    className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-brand hover:bg-brand hover:text-white transition-colors"
-                                                >
-                                                    <Phone size={14} />
-                                                </a>
-                                                <a
-                                                    href={`https://wa.me/55${lead.telefone.replace(/\D/g, '')}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    onClick={e => e.stopPropagation()}
-                                                    className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 hover:bg-green-600 hover:text-white transition-colors"
-                                                >
-                                                    <MessageCircle size={14} />
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
+    return <div className="cockpit-shell min-w-0 max-w-[1400px] mx-auto px-4 py-6 md:px-8 md:py-8 flex flex-col gap-8">
+        <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-5"><div><p className="mono text-[10px] uppercase tracking-[.2em] text-[#7869c9] mb-2">Carteira pessoal · simulação operacional</p><h1 className="text-[28px] md:text-[32px] leading-tight font-extrabold tracking-[-.04em]">Meus leads</h1><p className="text-sm text-text-secondary mt-2">{mine.length} leads atribuídos para você. Veja por etapa ou encontre um contato na lista.</p></div><button className="h-10 px-4 rounded-lg bg-[#7869c9] text-white text-xs font-bold flex items-center gap-2 hover:bg-[#5c4eaa] focus-ring"><UsersRound size={15} /> Minha carteira</button></section>
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">{GROUPS.slice(0, 5).map(group => <div key={group.status} className="soft-panel p-4"><p className="text-[10px] mono uppercase tracking-[.13em] text-text-muted">{statusLabels[group.status]}</p><p className="text-2xl font-extrabold mt-3">{mine.filter(lead => lead.status === group.status).length}</p><p className="text-[11px] text-text-secondary mt-1">na carteira</p></div>)}</section>
+        {pending > 0 && <section className="soft-panel p-4 border-warning/30 bg-warning-bg flex items-center gap-3"><AlertCircle size={18} className="text-warning shrink-0" /><p className="text-sm text-warning/90">Você tem <strong>{pending}</strong> leads aguardando primeiro contato.</p></section>}
+        {error && <section className="soft-panel p-4 border-red-200 bg-red-50 text-sm text-red-700">Não foi possível carregar sua carteira: {error}</section>}
+        <section className="soft-panel p-3 md:p-4 flex flex-col gap-3"><div className="flex flex-col lg:flex-row gap-3 lg:items-center"><div className="relative flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Buscar nome, telefone ou empreendimento" className="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-white text-sm outline-none focus:border-[#7869c9]" /></div><div className="flex gap-2 overflow-x-auto"><select value={statusFilter} onChange={event => setStatusFilter(event.target.value as LeadStatus | 'todos')} className="h-10 px-3 rounded-lg border border-border bg-white text-xs font-semibold"><option value="todos">Todas as etapas</option>{GROUPS.map(group => <option key={group.status} value={group.status}>{statusLabels[group.status]}</option>)}</select><select value={empreendimentoFilter} onChange={event => setEmpreendimentoFilter(event.target.value)} className="h-10 px-3 rounded-lg border border-border bg-white text-xs font-semibold"><option value="todos">Todos os empreendimentos</option>{empreendimentos.map(empreendimento => <option key={empreendimento.id} value={empreendimento.id}>{empreendimento.nome}</option>)}</select></div><div className="flex rounded-lg bg-[#f4f1ec] p-1 shrink-0"><button onClick={() => setView('stages')} className={`h-8 px-3 rounded-md text-xs font-bold flex items-center gap-1.5 ${view === 'stages' ? 'bg-white text-[#5c4eaa] shadow-sm' : 'text-text-secondary'}`}><LayoutGrid size={14} /> Etapas</button><button onClick={() => setView('list')} className={`h-8 px-3 rounded-md text-xs font-bold flex items-center gap-1.5 ${view === 'list' ? 'bg-white text-[#5c4eaa] shadow-sm' : 'text-text-secondary'}`}><ListFilter size={14} /> Lista</button></div></div><div className="flex items-center justify-between text-xs text-text-secondary"><span><SlidersHorizontal size={13} className="inline mr-1.5" />{filtered.length} de {mine.length} leads</span>{hasFilters && <button onClick={clearFilters} className="text-[#5c4eaa] font-bold flex items-center gap-1"><X size={13} /> Limpar filtros</button>}</div></section>
+        {loading ? <section className="soft-panel p-10 text-center text-sm text-text-secondary">Carregando sua carteira...</section> : view === 'stages' ? <section className="flex flex-col gap-8">{groups.map(group => <div key={group.status}><div className="flex items-end gap-3 mb-4"><div><p className="mono text-[10px] uppercase tracking-[.16em] text-text-muted">Etapa do processo</p><h2 className="text-lg font-extrabold mt-1">{statusLabels[group.status]}</h2></div><span className={`text-xs font-bold px-2.5 py-1 rounded-md border ${group.color}`}>{group.leads.length} lead{group.leads.length !== 1 ? 's' : ''}</span><div className="flex-1 h-px bg-border mb-2" /></div><div className="grid grid-cols-1 xl:grid-cols-2 gap-4">{group.leads.map(lead => <LeadCard key={lead.id} lead={lead} onOpen={open} />)}</div></div>)}</section> : <ListView leads={filtered} onOpen={open} />}
+        {filtered.length === 0 && <section className="soft-panel p-10 text-center"><p className="font-bold">Nenhum lead encontrado</p><p className="text-sm text-text-secondary mt-1">Tente remover ou ajustar os filtros.</p></section>}
+    </div>;
 }
 
-function getTimeAgo(date: Date): string {
-    const diff = Date.now() - date.getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins} min atrás`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h atrás`;
-    const days = Math.floor(hours / 24);
-    return `${days}d atrás`;
+function LeadCard({ lead, onOpen }: { lead: Lead; onOpen: (lead: Lead) => void }) {
+    const emp = getEmpreendimento(lead.empreendimentoId);
+    return <article className="attention-card p-4 flex flex-col sm:flex-row sm:items-center gap-4 cursor-pointer" onClick={() => onOpen(lead)}><div className="flex items-center justify-between min-w-0 flex-1"><div className="flex items-center gap-3 min-w-0"><div className="w-10 h-10 rounded-full bg-[#eeeafd] text-[#5c4eaa] flex items-center justify-center shrink-0 font-bold text-sm">{lead.nome.charAt(0)}</div><div className="min-w-0"><p className="text-sm font-bold truncate">{lead.nome}</p><p className="text-[11px] text-text-secondary truncate">{lead.empreendimentoNome || emp?.nome || 'Empreendimento não informado'} · {relativeTime(lead.criadoEm)}</p></div></div><div className="flex items-center gap-2 shrink-0"><a href={`tel:${lead.telefone}`} onClick={event => event.stopPropagation()} className="w-9 h-9 rounded-lg bg-[#eeeafd] flex items-center justify-center text-[#5c4eaa] hover:bg-[#7869c9] hover:text-white transition-colors"><Phone size={14} /></a><a href={`https://wa.me/55${lead.telefone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" onClick={event => event.stopPropagation()} className="w-9 h-9 rounded-lg bg-success-bg flex items-center justify-center text-success hover:bg-success hover:text-white transition-colors"><MessageCircle size={14} /></a></div></div><div className="flex items-center gap-2 sm:w-[220px] shrink-0"><div className="hidden sm:block min-w-0 flex-1"><p className="text-[10px] mono uppercase tracking-[.13em] text-text-muted">Próxima ação</p><p className="text-xs font-semibold mt-1">{lead.status === 'novo' ? 'Fazer primeiro contato' : 'Atualizar o próximo passo'}</p></div><ArrowUpRight size={15} className="text-text-muted" /></div></article>;
 }
+
+function ListView({ leads: visibleLeads, onOpen }: { leads: Lead[]; onOpen: (lead: Lead) => void }) { return <section className="soft-panel overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-left min-w-[850px]"><thead className="border-b border-border bg-[#faf9f7]"><tr className="text-[10px] mono uppercase tracking-[.12em] text-text-muted"><th className="p-4 font-medium">Lead</th><th className="p-4 font-medium">Etapa</th><th className="p-4 font-medium">Empreendimento</th><th className="p-4 font-medium">Entrada</th><th className="p-4 font-medium">Próxima ação</th><th className="p-4" /></tr></thead><tbody>{visibleLeads.map(lead => <tr key={lead.id} onClick={() => onOpen(lead)} className="border-b border-border last:border-0 hover:bg-[#faf9f7] cursor-pointer"><td className="p-4"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-[#eeeafd] text-[#5c4eaa] flex items-center justify-center font-bold text-xs">{lead.nome.charAt(0)}</div><div><p className="text-sm font-bold">{lead.nome}</p><p className="text-[11px] text-text-secondary">{lead.telefone}</p></div></div></td><td className="p-4"><span className={`text-xs font-bold px-2 py-1 rounded-md border ${GROUPS.find(group => group.status === lead.status)?.color}`}>{statusLabels[lead.status]}</span></td><td className="p-4 text-xs text-text-secondary">{lead.empreendimentoNome || getEmpreendimento(lead.empreendimentoId)?.nome}</td><td className="p-4 text-xs text-text-secondary">{relativeTime(lead.criadoEm)}</td><td className="p-4 text-xs font-semibold">{lead.status === 'novo' ? 'Fazer primeiro contato' : 'Atualizar o próximo passo'}</td><td className="p-4"><ArrowUpRight size={15} className="text-text-muted" /></td></tr>)}</tbody></table></div></section>; }
+function relativeTime(value: string) { const mins = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000)); if (mins < 60) return `${mins}min atrás`; const hours = Math.floor(mins / 60); if (hours < 24) return `${hours}h atrás`; return `${Math.floor(hours / 24)}d atrás`; }

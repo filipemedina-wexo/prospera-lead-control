@@ -18,7 +18,7 @@ export function PriorityLeadList() {
     const priorityLeads = leads
         .filter(l => ['novo', 'visita_marcada', 'proposta'].includes(l.status))
         .sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime())
-        .slice(0, 5);
+        .slice(0, 3);
 
     const handleLeadClick = (leadId: string) => {
         setSelectedLeadId(leadId);
@@ -26,7 +26,7 @@ export function PriorityLeadList() {
     };
 
     return (
-        <Card className="p-6 h-full">
+        <Card className="p-6">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                     <AlertCircle className="text-brand" size={20} />

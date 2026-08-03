@@ -1,4 +1,4 @@
-import { Building2, Store, User, Shield } from 'lucide-react';
+import { Building2, Store, User, Shield, Network } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { type UserProfile } from '../../data/mockData';
 import { cn } from '../../lib/utils';
@@ -6,6 +6,7 @@ import { cn } from '../../lib/utils';
 const profiles: { id: UserProfile; label: string; icon: React.ReactNode }[] = [
     { id: 'admin', label: 'Prospera (SaaS)', icon: <Shield size={14} /> },
     { id: 'incorporadora', label: 'Incorporadora', icon: <Building2 size={14} /> },
+    { id: 'gestora_lancamentos', label: 'Gestora de Lançamentos', icon: <Network size={14} /> },
     { id: 'imobiliaria', label: 'Imobiliária', icon: <Store size={14} /> },
     { id: 'corretor', label: 'Corretor', icon: <User size={14} /> },
 ];
