@@ -8,7 +8,7 @@ interface LayoutProps { children: React.ReactNode; onMenuToggle?: () => void; si
 export function Layout({ children, onMenuToggle, sidebarCollapsed = false }: LayoutProps) {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const { profile } = useAuth();
-    const isLiveMode = import.meta.env.VITE_APP_MODE === 'live';
+    const isLiveMode = import.meta.env.PROD && import.meta.env.VITE_APP_MODE !== 'mock';
     const workspaceName = profile?.nome || 'Minha operação';
 
     return (

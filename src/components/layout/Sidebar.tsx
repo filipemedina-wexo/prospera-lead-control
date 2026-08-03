@@ -16,7 +16,7 @@ const navByProfile: Record<UserProfile, NavItem[]> = {
 interface SidebarProps { collapsed: boolean; onToggle: () => void; mobileOpen: boolean; onMobileClose: () => void; }
 export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
     const { profile, currentPage, setCurrentPage } = useApp();
-    const isLiveMode = import.meta.env.VITE_APP_MODE === 'live';
+    const isLiveMode = import.meta.env.PROD && import.meta.env.VITE_APP_MODE !== 'mock';
     const liveNav: Partial<Record<UserProfile, NavItem[]>> = {
         incorporadora: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }, { icon: Megaphone, label: 'Captação', id: 'captacao' }],
         gestora_lancamentos: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }],

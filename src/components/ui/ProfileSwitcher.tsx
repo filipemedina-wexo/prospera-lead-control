@@ -15,7 +15,7 @@ const profiles: { id: UserProfile; label: string; icon: React.ReactNode }[] = [
 export function ProfileSwitcher() {
     const { profile, setProfile } = useApp();
     const { signOut } = useAuth();
-    const isLiveMode = import.meta.env.VITE_APP_MODE === 'live';
+    const isLiveMode = import.meta.env.PROD && import.meta.env.VITE_APP_MODE !== 'mock';
     const activeProfile = profiles.find((item) => item.id === profile);
 
     if (isLiveMode) {
