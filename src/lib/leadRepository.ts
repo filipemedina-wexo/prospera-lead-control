@@ -51,6 +51,34 @@ export function useBrokerLeads(corretorId?: string | null) {
   return { items, loading, error };
 }
 
+export function useTenantLeads(incorporadoraId?: string | null) {
+  const [items, setItems] = useState<Lead[]>(() => isMockMode ? mockLeads : []);
+  const [loading, setLoading] = useState(!isMockMode);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isMockMode) return;
+    let alive = true;
+    if (!incorporadoraId) { setItems([]); setLoading(false); return; }
+
+    supabase
+      .from('leads')
+      .select('*, empreendimento:empreendimentos(nome), historico_leads(*), leituras_lead(primeira_leitura_em)')
+      .eq('incorporadora_id', incorporadoraId)
+      .order('criado_em', { ascending: false })
+      .then(({ data, error: queryError }) => {
+        if (!alive) return;
+        if (queryError) { setError(queryError.message); setItems([]); }
+        else setItems(((data || []) as LeadRow[]).map(toLead));
+        setLoading(false);
+      });
+
+    return () => { alive = false; };
+  }, [incorporadoraId]);
+
+  return { items, loading, error };
+}
+
 export function useLead(id?: string | null) {
   const [item, setItem] = useState<Lead | null>(() => isMockMode ? mockLeads.find(lead => lead.id === id) || null : null);
   const [loading, setLoading] = useState(!isMockMode);

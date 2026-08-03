@@ -16,6 +16,13 @@ const navByProfile: Record<UserProfile, NavItem[]> = {
 interface SidebarProps { collapsed: boolean; onToggle: () => void; mobileOpen: boolean; onMobileClose: () => void; }
 export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) {
     const { profile, currentPage, setCurrentPage } = useApp();
+    const isLiveMode = import.meta.env.VITE_APP_MODE === 'live';
+    const liveNav: Partial<Record<UserProfile, NavItem[]>> = {
+        incorporadora: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }],
+        gestora_lancamentos: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }],
+        corretor: [{ icon: ClipboardList, label: 'Meus leads', id: 'meus-leads' }],
+    };
+    const visibleNav = isLiveMode ? (liveNav[profile] || []) : navByProfile[profile];
     return <>
         {mobileOpen && <div className="fixed inset-0 z-30 bg-[#242129]/55 md:hidden" onClick={onMobileClose} />}
         <aside className={cn('fixed left-0 top-[68px] bottom-0 z-40 flex flex-col bg-[#242129] text-white transition-all duration-300', 'md:top-0 md:translate-x-0', collapsed ? 'md:w-16' : 'md:w-56', mobileOpen ? 'translate-x-0 w-72' : '-translate-x-full w-72 md:w-auto')}>
@@ -25,7 +32,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
             </div>
             <div className={cn('px-3 pt-6 pb-2 text-[9px] mono uppercase tracking-[.2em] text-white/35', collapsed ? 'md:hidden' : '')}>Navegação</div>
             <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
-                {navByProfile[profile].map(({ icon: Icon, label, id }) => <button key={id} onClick={() => { setCurrentPage(id); onMobileClose(); }} className={cn('relative w-full min-h-10 flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors focus-ring', currentPage === id ? 'bg-[#40374d] text-white' : 'text-white/55 hover:text-white hover:bg-white/[.06]', collapsed ? 'md:justify-center' : '')} aria-label={collapsed ? label : undefined} aria-current={currentPage === id ? 'page' : undefined}><Icon size={17} strokeWidth={1.8} className="shrink-0" /><span className={collapsed ? 'md:hidden' : ''}>{label}</span>{currentPage === id && <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-[#a69ae4]" />}</button>)}
+                {visibleNav.map(({ icon: Icon, label, id }) => <button key={id} onClick={() => { setCurrentPage(id); onMobileClose(); }} className={cn('relative w-full min-h-10 flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors focus-ring', currentPage === id ? 'bg-[#40374d] text-white' : 'text-white/55 hover:text-white hover:bg-white/[.06]', collapsed ? 'md:justify-center' : '')} aria-label={collapsed ? label : undefined} aria-current={currentPage === id ? 'page' : undefined}><Icon size={17} strokeWidth={1.8} className="shrink-0" /><span className={collapsed ? 'md:hidden' : ''}>{label}</span>{currentPage === id && <span className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-[#a69ae4]" />}</button>)}
             </nav>
             <div className="p-2 border-t border-white/10 hidden md:block"><button onClick={onToggle} aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'} className="w-full min-h-10 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-white/45 hover:text-white hover:bg-white/[.06] text-xs focus-ring">{collapsed ? <ChevronRight size={16} /> : <><ChevronLeft size={16} /><span>Recolher menu</span></>}</button></div>
         </aside>
