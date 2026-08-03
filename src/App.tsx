@@ -107,13 +107,13 @@ function PageRouter() {
         switch (currentPage) {
             case 'dashboard': return <DashboardIncorporadora />;
             case 'leads': return <LeadsIncorporadora />;
+            case 'captacao': return <ConfiguracaoCaptacao />;
             case 'empreendimentos': return <GestaoEmpreendimentos />;
             case 'corretores': return <Corretores />;
             case 'imobiliarias': return <Imobiliarias />;
             case 'distribuicao': return <RoletaLeads />;
             case 'campanhas': return <CampanhasIncorporadora />;
             case 'configuracoes': return <ConfiguracoesIncorporadora />;
-            case 'captacao': return <ConfiguracaoCaptacao />;
             default: return <DashboardIncorporadora />;
         }
     }
