@@ -45,26 +45,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let active = true;
-    supabase.auth.getSession().then(async ({ data }) => {
+    const loadingFallback = window.setTimeout(() => {
+      if (active) setLoading(false);
+    }, 2500);
+
+    supabase.auth.getSession().then(({ data }) => {
       const sessionUser = data.session?.user ?? null;
       if (!active) return;
       setUser(sessionUser);
-      if (sessionUser) await fetchProfile(sessionUser.id);
-      if (active) setLoading(false);
+      if (sessionUser) void fetchProfile(sessionUser.id);
+      setLoading(false);
     }).catch(() => {
       if (active) setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
-      if (sessionUser) await fetchProfile(sessionUser.id);
+      if (sessionUser) void fetchProfile(sessionUser.id);
       else setProfile(null);
       setLoading(false);
     });
 
     return () => {
       active = false;
+      window.clearTimeout(loadingFallback);
       subscription.unsubscribe();
     };
   }, []);
