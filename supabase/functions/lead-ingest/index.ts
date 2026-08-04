@@ -132,7 +132,7 @@ Deno.serve(async (request) => {
     .rpc('distribuir_recebimento_webhook', { p_recebimento_id: receipt.id })
     .maybeSingle()
 
-  if (distributionError || distribution?.resultado !== 'processado') {
+  if (distributionError || !distribution?.lead_id || !['processado', 'sem_responsavel'].includes(distribution.resultado)) {
     return json({ accepted: true, duplicate: false, receipt_id: receipt.id, status: 'pendente_de_revisao' }, 202)
   }
   const { error: attributionError } = await supabase
@@ -143,5 +143,5 @@ Deno.serve(async (request) => {
   if (attributionError) {
     return json({ accepted: true, duplicate: false, receipt_id: receipt.id, lead_id: distribution.lead_id, status: 'processado_sem_atribuicao' }, 202)
   }
-  return json({ accepted: true, duplicate: false, receipt_id: receipt.id, lead_id: distribution.lead_id, status: 'processado' }, 201)
+  return json({ accepted: true, duplicate: false, receipt_id: receipt.id, lead_id: distribution.lead_id, status: distribution.resultado }, 201)
 })

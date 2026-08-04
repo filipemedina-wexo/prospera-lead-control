@@ -6,7 +6,7 @@ const isMockMode = import.meta.env.VITE_APP_MODE === 'mock' || (import.meta.env.
 
 type LeadRow = {
   id: string; nome: string; telefone: string; email: string | null; empreendimento_id: string; imobiliaria_id: string | null;
-  corretor_id: string; status: LeadStatus; tentativas_contato: number; ultima_tentativa: string | null; motivo_perdido: string | null;
+  corretor_id: string | null; status: LeadStatus; tentativas_contato: number; ultima_tentativa: string | null; motivo_perdido: string | null;
   data_visita: string | null; first_response_at: string | null; public_token: string | null; criado_em: string;
   empreendimento?: { nome: string } | null;
   historico_leads?: Array<{ id: string; tipo: HistoricoEntry['tipo']; descricao: string; autor: string | null; de: string | null; para: string | null; criado_em: string }>;
@@ -16,7 +16,7 @@ type LeadRow = {
 function toLead(row: LeadRow): Lead {
   return {
     id: row.id, nome: row.nome, telefone: row.telefone, email: row.email || undefined,
-    empreendimentoId: row.empreendimento_id, empreendimentoNome: row.empreendimento?.nome, imobiliariaId: row.imobiliaria_id || '', corretorId: row.corretor_id,
+    empreendimentoId: row.empreendimento_id, empreendimentoNome: row.empreendimento?.nome, imobiliariaId: row.imobiliaria_id || '', corretorId: row.corretor_id || '',
     status: row.status, tentativasContato: row.tentativas_contato, ultimaTentativa: row.ultima_tentativa || undefined,
     motivoPerdido: row.motivo_perdido || undefined, dataVisita: row.data_visita || undefined,
     firstResponseAt: row.first_response_at || undefined, publicToken: row.public_token || undefined, criadoEm: row.criado_em,
