@@ -7,7 +7,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Copy .env.example to .env and fill in the values.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Keep this explicit: the generated asset must change whenever the runtime
+// connection contract changes, because the final URL/key are injected by the
+// container at startup.
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+})
 
 export type Database = {
   public: {
