@@ -195,7 +195,7 @@ function AppWithAuth() {
     if (!user) return <Login />;
 
     // Authenticated → show main app, initialize profile from auth data
-    const defaultProfile = (authProfile?.role ?? 'incorporadora') as 'incorporadora' | 'gestora_lancamentos' | 'imobiliaria' | 'corretor';
+    const defaultProfile = (authProfile?.is_superadmin ? 'admin' : authProfile?.role ?? 'incorporadora') as 'admin' | 'incorporadora' | 'gestora_lancamentos' | 'imobiliaria' | 'corretor';
 
     return (
         <AppProvider defaultProfile={defaultProfile}>

@@ -9,6 +9,7 @@ export interface Profile {
   imobiliaria_id: string | null;
   corretor_id: string | null;
   role: 'incorporadora' | 'gestora_lancamentos' | 'imobiliaria' | 'corretor';
+  is_superadmin: boolean;
   nome: string | null;
   email: string | null;
 }
