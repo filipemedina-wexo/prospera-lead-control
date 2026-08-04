@@ -19,7 +19,11 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
     const isLiveMode = import.meta.env.PROD && import.meta.env.VITE_APP_MODE !== 'mock';
     const liveNav: Partial<Record<UserProfile, NavItem[]>> = {
         incorporadora: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }, { icon: Building2, label: 'Empreendimentos', id: 'empreendimentos' }, { icon: Megaphone, label: 'Captação', id: 'captacao' }],
-        gestora_lancamentos: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }],
+        gestora_lancamentos: [
+            { icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' },
+            { icon: ClipboardList, label: 'Leads', id: 'leads' },
+            { icon: Shuffle, label: 'Distribuição', id: 'distribuicao' },
+        ],
         corretor: [{ icon: ClipboardList, label: 'Meus leads', id: 'meus-leads' }],
     };
     const visibleNav = isLiveMode ? (liveNav[profile] || []) : navByProfile[profile];
