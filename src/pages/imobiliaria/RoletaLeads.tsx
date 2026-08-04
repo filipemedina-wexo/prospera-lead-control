@@ -476,7 +476,11 @@ function GestoraDistribuicao() {
 export function RoletaLeads() {
     const { profile } = useApp();
     const { profile: authProfile } = useAuth();
-    if (import.meta.env.VITE_APP_MODE === 'live') return <DistribuicaoLive authProfile={authProfile} />;
+    // Distribuição é sempre operacional. Esta rota não pode cair na antiga
+    // visualização demonstrativa, pois ela mostraria uma fila que não existe
+    // no banco e poderia induzir decisões erradas da Gestora.
+    if (import.meta.env.VITE_APP_MODE !== 'mock') return <DistribuicaoLive authProfile={authProfile} />;
+
     if (profile === 'gestora_lancamentos') return <GestoraDistribuicao />;
     const [expandedEmp, setExpandedEmp] = useState<string | null>('emp-1');
     const [gerenciarEmpId, setGerenciarEmpId] = useState<string | null>(null);
