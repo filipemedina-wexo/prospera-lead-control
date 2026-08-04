@@ -12,6 +12,8 @@ import {
 } from '../../data/mockData';
 import { cn } from '../../lib/utils';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { DistribuicaoLive } from './DistribuicaoLive';
 
 const IMOB_ID = 'imob-1';
 
@@ -473,6 +475,8 @@ function GestoraDistribuicao() {
 
 export function RoletaLeads() {
     const { profile } = useApp();
+    const { profile: authProfile } = useAuth();
+    if (import.meta.env.VITE_APP_MODE === 'live') return <DistribuicaoLive authProfile={authProfile} />;
     if (profile === 'gestora_lancamentos') return <GestoraDistribuicao />;
     const [expandedEmp, setExpandedEmp] = useState<string | null>('emp-1');
     const [gerenciarEmpId, setGerenciarEmpId] = useState<string | null>(null);
