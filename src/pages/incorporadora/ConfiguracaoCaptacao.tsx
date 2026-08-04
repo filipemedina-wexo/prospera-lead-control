@@ -120,31 +120,22 @@ function metaAdsWorkflowConfig(url: string, secret: string) {
     nodes: [
       { parameters: {}, type: 'n8n-nodes-base.facebookLeadAdsTrigger', typeVersion: 1, position: [-420, 0], name: 'Meta Lead Ads Trigger' },
       { parameters: { jsCode: `const lead = $input.first().json;
-const fields = Array.isArray(lead.field_data) ? lead.field_data : [];
-const field = (...names) => {
-  const item = fields.find((entry) => names.includes(String(entry.name || '').toLowerCase()));
-  return item?.values?.[0] || '';
-};
+const data = lead.data || lead;
 
 return [{ json: {
-  nome: lead.full_name || lead.nome || lead.name || field('full_name', 'nome', 'name'),
-  telefone: lead.phone_number || lead.telefone || lead.phone || field('phone_number', 'telefone', 'phone', 'whatsapp'),
-  email: lead.email || field('email'),
+  nome: data.full_name || data.nome || data.name || '',
+  telefone: data.phone_number || data.telefone || data.phone || data.whatsapp || '',
+  email: data.email || '',
   id: lead.id || lead.lead_id,
   canal: 'meta_ads',
-  campaign_id: lead.campaign_id,
-  campaign_name: lead.campaign_name,
-  adset_id: lead.adset_id,
-  adset_name: lead.adset_name,
-  ad_id: lead.ad_id,
-  ad_name: lead.ad_name,
-  form_id: lead.form_id,
-  form_name: lead.form_name,
-  utm_source: lead.utm_source,
-  utm_medium: lead.utm_medium,
-  utm_campaign: lead.utm_campaign,
-  utm_content: lead.utm_content,
-  utm_term: lead.utm_term,
+  campaign_id: lead.campaign?.id || lead.campaign_id || '',
+  campaign_name: lead.campaign?.name || lead.campaign_name || '',
+  adset_id: lead.adset?.id || lead.adset_id || '',
+  adset_name: lead.adset?.name || lead.adset_name || '',
+  ad_id: lead.ad?.id || lead.ad_id || '',
+  ad_name: lead.ad?.name || lead.ad_name || '',
+  form_id: lead.form?.id || lead.form_id || '',
+  form_name: lead.form?.name || lead.form_name || '',
 } }];` }, type: 'n8n-nodes-base.code', typeVersion: 2, position: [-120, 0], name: 'Mapear lead e origem' },
       { parameters: { method: 'POST', url, sendHeaders: true, headerParameters: { parameters: [{ name: 'x-prospera-secret', value: secret }] }, sendBody: true, specifyBody: 'json', jsonBody: '={{ JSON.stringify($json) }}' }, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [180, 0], name: 'Enviar para Prospera' },
     ],
