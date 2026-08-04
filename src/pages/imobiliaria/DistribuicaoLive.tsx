@@ -70,7 +70,14 @@ export function DistribuicaoLive({ authProfile }: { authProfile: Profile | null 
       if (blocksError) throw blocksError;
       setMessage('Distribuição publicada. Os próximos leads usarão esta fila.');
       await load();
-    } catch (cause) { setMessage(cause instanceof Error ? cause.message : 'Não foi possível salvar a distribuição.'); }
+    } catch (cause) {
+      // PostgrestError is a plain object, not an Error instance. Preserve the
+      // server message so the operator can act on a real configuration issue.
+      const detail = cause && typeof cause === 'object' && 'message' in cause
+        ? String(cause.message)
+        : 'Não foi possível salvar a distribuição.';
+      setMessage(detail);
+    }
     finally { setSaving(false); }
   }
 
