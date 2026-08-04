@@ -46,6 +46,15 @@ export function ConfiguracaoCaptacao() {
     setCopied(key);
     window.setTimeout(() => setCopied(null), 1600);
   };
+  const download = (value: string, filename: string) => {
+    const blob = new Blob([value], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const createEmpreendimento = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -56,7 +65,6 @@ export function ConfiguracaoCaptacao() {
     else { setNomeEmpreendimento(''); setCidade(''); await load(); setEmpreendimentoId(data as string); }
     setCreating(false);
   };
-
   const createIntegracao = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
@@ -75,12 +83,29 @@ export function ConfiguracaoCaptacao() {
   return <div className="cockpit-shell max-w-[1120px] mx-auto px-4 py-6 md:px-8 md:py-8 space-y-6">
     <section><p className="mono text-[10px] uppercase tracking-[.2em] text-[#7869c9] mb-2">Captação</p><h1 className="text-[28px] font-extrabold tracking-[-.04em]">Webhook de leads</h1><p className="text-sm text-text-secondary mt-2">Crie uma integração por empreendimento e conecte seu Zapier, n8n ou formulário. O segredo não fica salvo no navegador.</p></section>
     {error && <Card className="p-4 border-red-200 bg-red-50 text-sm text-red-700">{error}</Card>}
-    {novaIntegracao && <Card className="p-5 border-emerald-200 bg-emerald-50"><div className="flex gap-3"><ShieldCheck className="text-emerald-600 shrink-0" /><div className="min-w-0 flex-1"><h2 className="font-bold">Integração criada. Copie o segredo agora.</h2><p className="text-sm text-text-secondary mt-1">Por segurança, ele não poderá ser exibido novamente.</p><SecretField label="URL do webhook" value={endpoint(novaIntegracao.chave_publica)} copied={copied === 'url'} onCopy={() => void copy(endpoint(novaIntegracao.chave_publica), 'url')} /><SecretField label="Segredo (header x-prospera-secret)" value={novaIntegracao.segredo} copied={copied === 'secret'} onCopy={() => void copy(novaIntegracao.segredo, 'secret')} /><div className="mt-5 rounded-lg border border-emerald-200 bg-white p-4"><div className="flex items-center justify-between gap-3"><div><p className="text-sm font-bold">Configuração pronta para n8n</p><p className="text-xs text-text-secondary mt-1">Cria um node HTTP Request com URL, header e corpo já preenchidos.</p></div><button onClick={() => void copy(n8nNodeConfig(endpoint(novaIntegracao.chave_publica), novaIntegracao.segredo), 'n8n')} className="shrink-0 h-9 px-3 rounded-lg border border-emerald-200 text-xs font-bold text-emerald-700 flex items-center gap-1.5">{copied === 'n8n' ? <Check size={14} /> : <Copy size={14} />}{copied === 'n8n' ? 'Copiado' : 'Copiar JSON n8n'}</button></div></div><button onClick={() => setNovaIntegracao(null)} className="mt-4 text-xs font-bold text-emerald-700 hover:underline">Já copiei, fechar aviso</button></div></div></Card>}
+    {novaIntegracao && <Card className="p-5 border-emerald-200 bg-emerald-50"><div className="flex gap-3"><ShieldCheck className="text-emerald-600 shrink-0" /><div className="min-w-0 flex-1"><h2 className="font-bold">Integração criada. Copie o segredo agora.</h2><p className="text-sm text-text-secondary mt-1">Por segurança, ele não poderá ser exibido novamente.</p><SecretField label="URL do webhook" value={endpoint(novaIntegracao.chave_publica)} copied={copied === 'url'} onCopy={() => void copy(endpoint(novaIntegracao.chave_publica), 'url')} /><SecretField label="Segredo (header x-prospera-secret)" value={novaIntegracao.segredo} copied={copied === 'secret'} onCopy={() => void copy(novaIntegracao.segredo, 'secret')} /><div className="mt-5 rounded-lg border border-emerald-200 bg-white p-4"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><p className="text-sm font-bold">Workflow Meta Ads + Prospera</p><p className="text-xs text-text-secondary mt-1">Baixa um fluxo importável: gatilho Meta Lead Ads, mapeamento dos campos e envio autenticado ao Prospera.</p></div><button onClick={() => download(metaAdsWorkflowConfig(endpoint(novaIntegracao.chave_publica), novaIntegracao.segredo), 'prospera-meta-ads-leads.json')} className="shrink-0 h-9 px-3 rounded-lg border border-emerald-200 text-xs font-bold text-emerald-700 flex items-center gap-1.5"><Copy size={14} />Baixar JSON n8n</button></div><p className="mt-3 text-xs text-text-secondary">Depois de importar, abra o primeiro node e escolha sua credencial Meta, página e formulário. O restante já fica ligado ao webhook.</p></div><button onClick={() => setNovaIntegracao(null)} className="mt-4 text-xs font-bold text-emerald-700 hover:underline">Já copiei, fechar aviso</button></div></div></Card>}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <Card className="p-5"><div className="flex items-center gap-2"><Plus size={18} className="text-[#7869c9]" /><h2 className="font-bold">1. Cadastre o empreendimento</h2></div><p className="text-sm text-text-secondary mt-1 mb-5">O webhook sempre pertence a um empreendimento.</p><form onSubmit={createEmpreendimento} className="space-y-3"><input required value={nomeEmpreendimento} onChange={(event) => setNomeEmpreendimento(event.target.value)} placeholder="Nome do empreendimento" className="w-full h-10 px-3 rounded-lg border border-border bg-bg text-sm" /><input value={cidade} onChange={(event) => setCidade(event.target.value)} placeholder="Cidade (opcional)" className="w-full h-10 px-3 rounded-lg border border-border bg-bg text-sm" /><button disabled={creating} className="h-10 px-4 rounded-lg bg-[#7869c9] text-white text-xs font-bold disabled:opacity-50">Cadastrar empreendimento</button></form></Card>
       <Card className="p-5"><div className="flex items-center gap-2"><Radio size={18} className="text-[#7869c9]" /><h2 className="font-bold">2. Gere o webhook</h2></div><p className="text-sm text-text-secondary mt-1 mb-5">A URL identifica a integração; o segredo autentica cada envio.</p><form onSubmit={createIntegracao} className="space-y-3"><select required value={empreendimentoId} onChange={(event) => setEmpreendimentoId(event.target.value)} disabled={!empreendimentos.length} className="w-full h-10 px-3 rounded-lg border border-border bg-bg text-sm"><option value="">Selecione o empreendimento</option>{empreendimentos.map((emp) => <option key={emp.id} value={emp.id}>{emp.nome}</option>)}</select><input required value={nomeIntegracao} onChange={(event) => setNomeIntegracao(event.target.value)} placeholder="Ex.: Meta Ads principal" className="w-full h-10 px-3 rounded-lg border border-border bg-bg text-sm" /><select value={provedor} onChange={(event) => setProvedor(event.target.value)} className="w-full h-10 px-3 rounded-lg border border-border bg-bg text-sm">{Object.entries(providerLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button disabled={creating || !empreendimentoId} className="h-10 px-4 rounded-lg bg-[#7869c9] text-white text-xs font-bold disabled:opacity-50">Gerar integração</button></form></Card>
     </div>
-    <Card className="p-5"><div className="flex items-center gap-2"><Link2 size={18} className="text-[#7869c9]" /><div><h2 className="font-bold">Contrato de entrada do webhook</h2><p className="text-sm text-text-secondary mt-1"><strong>Obrigatórios:</strong> <code>nome</code> e <code>telefone</code>. Também aceita os sinônimos <code>name</code>/<code>full_name</code> e <code>phone</code>/<code>whatsapp</code>. <strong>Opcionais:</strong> <code>email</code> e <code>id</code> (ou <code>lead_id</code>, usado para evitar duplicidade).</p></div></div><pre className="mt-4 p-4 rounded-lg bg-[#242129] text-white/90 text-xs overflow-x-auto">{`{\n  "nome": "Maria Silva",\n  "telefone": "11999999999",\n  "email": "maria@email.com",\n  "id": "lead-do-origem"\n}`}</pre></Card>
+    <Card className="p-5"><div className="flex items-center gap-2"><Link2 size={18} className="text-[#7869c9]" /><div><h2 className="font-bold">Contrato de entrada do webhook</h2><p className="text-sm text-text-secondary mt-1"><strong>Obrigatórios:</strong> <code>nome</code> e <code>telefone</code>. Também aceita <code>name</code>/<code>full_name</code> e <code>phone</code>/<code>whatsapp</code>. <strong>Opcionais:</strong> <code>email</code> e <code>id</code> (ou <code>lead_id</code>, usado para evitar duplicidade).</p></div></div><p className="text-sm text-text-secondary mt-4">Para enxergar a origem no cockpit, envie também <code>canal</code>, IDs e nomes de campanha, conjunto, anúncio e formulário, além de UTMs quando existirem.</p><pre className="mt-4 p-4 rounded-lg bg-[#242129] text-white/90 text-xs overflow-x-auto">{`{
+  "nome": "Maria Silva",
+  "telefone": "11999999999",
+  "email": "maria@email.com",
+  "id": "lead-do-origem",
+  "canal": "meta_ads",
+  "campaign_id": "120...",
+  "campaign_name": "Lançamento agosto",
+  "adset_id": "120...",
+  "adset_name": "Balneário - interesse",
+  "ad_id": "120...",
+  "ad_name": "Vídeo vista mar",
+  "form_id": "120...",
+  "form_name": "Cadastro lançamento",
+  "utm_source": "facebook",
+  "utm_medium": "paid_social",
+  "utm_campaign": "lancamento_agosto"
+}`}</pre></Card>
     <Card className="p-5"><h2 className="font-bold">Integrações ativas</h2>{loading ? <p className="text-sm text-text-secondary mt-4">Carregando...</p> : integracoes.length === 0 ? <p className="text-sm text-text-secondary mt-4">Nenhuma integração criada ainda.</p> : <div className="mt-4 divide-y divide-border">{integracoes.map((item) => <div key={item.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"><div><p className="text-sm font-semibold">{item.nome}</p><p className="text-xs text-text-secondary">{item.empreendimento_nome} · {providerLabels[item.provedor] || item.provedor}</p></div><button onClick={() => void copy(endpoint(item.chave_publica), item.id)} className="text-xs font-bold text-[#5c4eaa] flex items-center gap-1">{copied === item.id ? <Check size={14} /> : <Copy size={14} />} Copiar URL</button></div>)}</div>}</Card>
   </div>;
 }
@@ -89,15 +114,45 @@ function SecretField({ label, value, copied, onCopy }: { label: string; value: s
   return <div className="mt-4"><p className="text-xs font-bold text-text-secondary mb-1.5">{label}</p><div className="flex gap-2"><code className="flex-1 min-w-0 break-all rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs">{value}</code><button onClick={onCopy} className="shrink-0 w-10 rounded-lg border border-emerald-200 bg-white text-emerald-700 flex items-center justify-center" aria-label={`Copiar ${label}`}>{copied ? <Check size={16} /> : <Copy size={16} />}</button></div></div>;
 }
 
-function n8nNodeConfig(url: string, secret: string) {
+function metaAdsWorkflowConfig(url: string, secret: string) {
   return JSON.stringify({
-    parameters: {
-      method: 'POST', url, sendHeaders: true,
-      headerParameters: { parameters: [{ name: 'x-prospera-secret', value: secret }] },
-      sendBody: true, specifyBody: 'json',
-      jsonBody: '={\n  "nome": "{{$json.nome}}",\n  "telefone": "{{$json.telefone}}",\n  "email": "{{$json.email}}",\n  "id": "{{$json.id}}"\n}',
+    name: 'Meta Lead Ads → Prospera',
+    nodes: [
+      { parameters: {}, type: 'n8n-nodes-base.facebookLeadAdsTrigger', typeVersion: 1, position: [-420, 0], name: 'Meta Lead Ads Trigger' },
+      { parameters: { jsCode: `const lead = $input.first().json;
+const fields = Array.isArray(lead.field_data) ? lead.field_data : [];
+const field = (...names) => {
+  const item = fields.find((entry) => names.includes(String(entry.name || '').toLowerCase()));
+  return item?.values?.[0] || '';
+};
+
+return [{ json: {
+  nome: lead.full_name || lead.nome || lead.name || field('full_name', 'nome', 'name'),
+  telefone: lead.phone_number || lead.telefone || lead.phone || field('phone_number', 'telefone', 'phone', 'whatsapp'),
+  email: lead.email || field('email'),
+  id: lead.id || lead.lead_id,
+  canal: 'meta_ads',
+  campaign_id: lead.campaign_id,
+  campaign_name: lead.campaign_name,
+  adset_id: lead.adset_id,
+  adset_name: lead.adset_name,
+  ad_id: lead.ad_id,
+  ad_name: lead.ad_name,
+  form_id: lead.form_id,
+  form_name: lead.form_name,
+  utm_source: lead.utm_source,
+  utm_medium: lead.utm_medium,
+  utm_campaign: lead.utm_campaign,
+  utm_content: lead.utm_content,
+  utm_term: lead.utm_term,
+} }];` }, type: 'n8n-nodes-base.code', typeVersion: 2, position: [-120, 0], name: 'Mapear lead e origem' },
+      { parameters: { method: 'POST', url, sendHeaders: true, headerParameters: { parameters: [{ name: 'x-prospera-secret', value: secret }] }, sendBody: true, specifyBody: 'json', jsonBody: '={{ JSON.stringify($json) }}' }, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [180, 0], name: 'Enviar para Prospera' },
+    ],
+    connections: {
+      'Meta Lead Ads Trigger': { main: [[{ node: 'Mapear lead e origem', type: 'main', index: 0 }]] },
+      'Mapear lead e origem': { main: [[{ node: 'Enviar para Prospera', type: 'main', index: 0 }]] },
     },
-    type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2,
-    position: [0, 0], name: 'Enviar lead para Prospera',
+    active: false,
+    settings: { executionOrder: 'v1' },
   }, null, 2);
 }
