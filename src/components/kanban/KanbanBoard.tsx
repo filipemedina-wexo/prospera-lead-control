@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -22,7 +21,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ leads: externalLeads, onCardClick }: KanbanBoardProps = {}) {
-    const [leads] = useState<Lead[]>(externalLeads ?? initialLeads);
+    const leads = externalLeads ?? initialLeads;
 
     const sensors = useSensors(
         useSensor(PointerSensor),

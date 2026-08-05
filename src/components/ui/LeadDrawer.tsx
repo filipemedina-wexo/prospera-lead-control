@@ -2,21 +2,15 @@ import { useEffect } from 'react';
 import { X, Phone, MapPin, User, MessageCircle } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { Timeline } from './Timeline';
-import {
-    leads,
-    getEmpreendimento,
-    getCorretor,
-} from '../../data/mockData';
+import type { Lead } from '../../data/mockData';
 
 interface LeadDrawerProps {
-    leadId: string | null;
+    lead: Lead | null;
+    brokerName?: string;
     onClose: () => void;
 }
 
-export function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
-    const lead = leadId ? leads.find(l => l.id === leadId) : null;
-    const emp = lead ? getEmpreendimento(lead.empreendimentoId) : null;
-    const cor = lead ? getCorretor(lead.corretorId) : null;
+export function LeadDrawer({ lead, brokerName, onClose }: LeadDrawerProps) {
 
     // Fechar com ESC
     useEffect(() => {
@@ -29,15 +23,15 @@ export function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
 
     // Bloquear scroll do body quando aberto
     useEffect(() => {
-        if (leadId) {
+        if (lead) {
             document.body.style.overflow = 'hidden';
         } else {
             document.body.style.overflow = '';
         }
         return () => { document.body.style.overflow = ''; };
-    }, [leadId]);
+    }, [lead]);
 
-    if (!leadId) return null;
+    if (!lead) return null;
 
     return (
         <>
@@ -104,14 +98,14 @@ export function LeadDrawer({ leadId, onClose }: LeadDrawerProps) {
                                         <MapPin size={16} className="text-text-muted shrink-0" />
                                         <div>
                                             <p className="text-[10px] text-text-muted uppercase tracking-wider">Empreendimento</p>
-                                            <p className="text-sm font-medium">{emp?.nome ?? '—'}</p>
+                                            <p className="text-sm font-medium">{lead.empreendimentoNome ?? '—'}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 p-3 rounded-xl bg-black/[0.02] border border-border">
                                         <User size={16} className="text-text-muted shrink-0" />
                                         <div>
                                             <p className="text-[10px] text-text-muted uppercase tracking-wider">Corretor Responsável</p>
-                                            <p className="text-sm font-medium">{cor?.nome ?? '—'}</p>
+                                            <p className="text-sm font-medium">{brokerName ?? 'Não atribuído'}</p>
                                         </div>
                                     </div>
                                     {lead.motivoPerdido && (

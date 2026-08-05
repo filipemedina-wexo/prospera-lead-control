@@ -1,5 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useEffect, useState } from 'react';
 import type { Lead } from '../../data/mockData';
 import { getEmpreendimento } from '../../data/mockData';
 import { Phone, Clock } from 'lucide-react';
@@ -10,6 +11,11 @@ interface Props {
 }
 
 export function KanbanCard({ lead, onCardClick }: Props) {
+    const [now, setNow] = useState(0);
+    useEffect(() => {
+        const interval = window.setInterval(() => setNow(Date.now()), 1_000);
+        return () => window.clearInterval(interval);
+    }, []);
     const {
         attributes,
         listeners,
@@ -30,11 +36,12 @@ export function KanbanCard({ lead, onCardClick }: Props) {
         transition,
     };
 
-    const empreendimento = getEmpreendimento(lead.empreendimentoId);
+    const empreendimentoNome = lead.empreendimentoNome || getEmpreendimento(lead.empreendimentoId)?.nome;
 
     // Format relative time like "2h atrás"
     const getTimeAgo = (dateStr: string) => {
-        const diff = Date.now() - new Date(dateStr).getTime();
+        if (!now) return 'agora';
+        const diff = now - new Date(dateStr).getTime();
         const mins = Math.floor(diff / 60000);
         if (mins < 60) return `${mins}m`;
         const hours = Math.floor(mins / 60);
@@ -73,7 +80,7 @@ export function KanbanCard({ lead, onCardClick }: Props) {
                 </span>
             </div>
 
-            <p className="text-xs text-slate-500 mb-3 truncate">{empreendimento?.nome}</p>
+            <p className="text-xs text-slate-500 mb-3 truncate">{empreendimentoNome || 'Empreendimento não informado'}</p>
 
             <div className="flex items-center gap-2">
                 <button
