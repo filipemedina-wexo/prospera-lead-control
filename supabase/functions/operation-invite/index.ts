@@ -1,9 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 
 type InviteBody = { email?: string; organizacao_id?: string; papel?: 'admin' | 'gestor' | 'corretor'; redirect_to?: string }
-const allowedOrigins = new Set(['https://leadcontrol.useprospera.com.br', 'http://localhost:3000'])
+const allowedOrigins = new Set(['https://leadcontrol.useprospera.com.br'])
 const corsHeaders = (origin: string | null) => ({
-  'Access-Control-Allow-Origin': origin && allowedOrigins.has(origin) ? origin : 'https://leadcontrol.useprospera.com.br',
+  ...(origin && allowedOrigins.has(origin) ? { 'Access-Control-Allow-Origin': origin } : {}),
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Vary': 'Origin',
