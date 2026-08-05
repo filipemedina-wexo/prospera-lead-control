@@ -581,9 +581,7 @@ export function LeadDetalhe() {
                                             onClick={() => {
                                                 if (!lead) return;
                                                 const reason = motivoPerdido.trim();
-                                                lead.status = 'perdido';
-                                                lead.motivoPerdido = reason;
-                                                setLoadedLead({ ...lead });
+                                                setLoadedLead({ ...lead, status: 'perdido', motivoPerdido: reason });
                                                 setShowLostModal(false);
                                                 void atualizarLead(lead.id, 'perdido', undefined, undefined, reason).catch(() => undefined);
                                             }}

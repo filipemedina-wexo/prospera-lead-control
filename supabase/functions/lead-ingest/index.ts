@@ -77,6 +77,12 @@ Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204 })
   if (request.method !== 'POST') return json({ error: 'Use POST para enviar um lead.' }, 405)
 
+  // A função é pública para n8n/Meta; limite entrada antes de desserializar
+  // para não transformar payloads arbitrários em consumo de banco/logs.
+  const contentLength = Number(request.headers.get('content-length') || '0')
+  if (!Number.isFinite(contentLength) || contentLength > 64_000) return json({ error: 'Payload excede o limite permitido.' }, 413)
+  if (!(request.headers.get('content-type') || '').toLowerCase().includes('application/json')) return json({ error: 'Use Content-Type application/json.' }, 415)
+
   const url = new URL(request.url)
   const chavePublica = url.pathname.split('/').filter(Boolean).at(-1)
   const segredo = request.headers.get('x-prospera-secret')?.trim()
@@ -97,7 +103,7 @@ Deno.serve(async (request) => {
   const telefone = text(payload.telefone) || text(payload.phone) || text(payload.whatsapp)
   const email = text(payload.email).toLowerCase() || null
   const atribuicao = attributionFrom(payload)
-  if (!nome || !telefone) return json({ error: 'nome e telefone são obrigatórios.' }, 422)
+  if (!nome || !telefone || nome.length > 160 || telefone.length > 40 || (email && email.length > 254)) return json({ error: 'nome e telefone válidos são obrigatórios.' }, 422)
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')

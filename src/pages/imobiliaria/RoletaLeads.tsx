@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
     Shuffle, Settings, CheckCircle2, XCircle, Clock,
     ChevronDown, ChevronRight, Users, Building2, Info,
@@ -474,6 +474,10 @@ function GestoraDistribuicao() {
 }
 
 export function RoletaLeads() {
+    // Hooks precisam ser chamados antes de qualquer desvio para a visão da Gestora.
+    // No modo live o estado não é usado, mas mantém a ordem de hooks estável.
+    const [expandedEmp, setExpandedEmp] = useState<string | null>('emp-1');
+    const [gerenciarEmpId, setGerenciarEmpId] = useState<string | null>(null);
     const { profile } = useApp();
     const { profile: authProfile } = useAuth();
     // Distribuição é sempre operacional. Esta rota não pode cair na antiga
@@ -482,8 +486,6 @@ export function RoletaLeads() {
     if (import.meta.env.VITE_APP_MODE !== 'mock') return <DistribuicaoLive authProfile={authProfile} />;
 
     if (profile === 'gestora_lancamentos') return <GestoraDistribuicao />;
-    const [expandedEmp, setExpandedEmp] = useState<string | null>('emp-1');
-    const [gerenciarEmpId, setGerenciarEmpId] = useState<string | null>(null);
 
     const imobCorretores = corretores.filter(c => c.imobiliariaId === IMOB_ID);
 
@@ -493,8 +495,7 @@ export function RoletaLeads() {
         .map(id => empreendimentos.find(e => e.id === id))
         .filter(Boolean) as typeof empreendimentos;
 
-    const historicoAtribuicoes = useMemo(() => {
-        return imobLeads
+    const historicoAtribuicoes = imobLeads
             .map(l => ({
                 lead: l,
                 corretor: imobCorretores.find(c => c.id === l.corretorId),
@@ -503,7 +504,6 @@ export function RoletaLeads() {
             .filter(h => h.corretor && h.emp)
             .sort((a, b) => new Date(b.lead.criadoEm).getTime() - new Date(a.lead.criadoEm).getTime())
             .slice(0, 8);
-    }, [imobLeads, imobCorretores]);
 
     const balanceamento = imobCorretores.map(c => {
         const total = imobLeads.filter(l => l.corretorId === c.id).length;

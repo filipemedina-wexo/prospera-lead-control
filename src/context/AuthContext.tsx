@@ -17,8 +17,12 @@ export interface Profile {
 interface AuthContextValue {
   user: User | null;
   profile: Profile | null;
+  /** Identidade autenticada. Nunca é trocada pela visualização operacional. */
+  actualProfile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  startOperatingAs: (target: Profile) => Promise<void>;
+  stopOperatingAs: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -28,6 +32,7 @@ const demoUser = { id: 'dummy-user', app_metadata: {}, user_metadata: {}, aud: '
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => isDemoMode ? demoUser : null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [actualProfile, setActualProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(() => !isDemoMode);
 
   async function fetchProfile(userId: string) {
@@ -37,7 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       return;
     }
-    setProfile(data as Profile);
+    const loaded = data as Profile;
+    setActualProfile(loaded);
+    setProfile(loaded);
   }
 
   useEffect(() => {
@@ -64,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const sessionUser = session?.user ?? null;
       setUser(sessionUser);
       if (sessionUser) void fetchProfile(sessionUser.id);
-      else setProfile(null);
+      else { setProfile(null); setActualProfile(null); }
       setLoading(false);
     });
 
@@ -79,9 +86,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isDemoMode) await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    setActualProfile(null);
   }
 
-  return <AuthContext.Provider value={{ user, profile, loading, signOut }}>{children}</AuthContext.Provider>;
+  async function startOperatingAs(target: Profile) {
+    if (!actualProfile?.is_superadmin) return;
+    const { error } = await supabase.rpc('registrar_operacao_assistida', { p_alvo_id: target.id, p_acao: 'iniciar' });
+    if (error) throw error;
+    setProfile(target);
+  }
+  async function stopOperatingAs() {
+    if (!actualProfile?.is_superadmin) return;
+    if (profile && profile.id !== actualProfile.id) {
+      const { error } = await supabase.rpc('registrar_operacao_assistida', { p_alvo_id: profile.id, p_acao: 'encerrar' });
+      if (error) throw error;
+    }
+    setProfile(actualProfile);
+  }
+
+  return <AuthContext.Provider value={{ user, profile, actualProfile, loading, signOut, startOperatingAs, stopOperatingAs }}>{children}</AuthContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
