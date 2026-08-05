@@ -12,7 +12,7 @@ import {
     statusLabels,
     type LeadStatus,
 } from '../../data/mockData';
-import { atualizarLead, marcarLeadComoLido, registrarTentativaContato, useLead } from '../../lib/leadRepository';
+import { atualizarLead, confirmarVisitaRealizada, marcarLeadComoLido, registrarTentativaContato, useLead } from '../../lib/leadRepository';
 import { triggerReward } from '../../utils/confetti';
 
 interface Nota {
@@ -136,10 +136,9 @@ export function LeadDetalhe() {
         setNotas([nova, ...notas]);
         setVisitFeedback('');
 
-        if (lead) {
-            // Mock update to hide the card
-            lead.dataVisita = undefined;
-        }
+        if (lead) void confirmarVisitaRealizada(lead.id, feedback)
+            .then((confirmedAt) => setLoadedLead((current) => current ? { ...current, visitaRealizadaEm: confirmedAt } : current))
+            .catch(() => undefined);
     };
 
     const handleStatusClick = (status: LeadStatus) => {
@@ -434,7 +433,7 @@ export function LeadDetalhe() {
 
                 {/* Visit Confirmation Card */}
                 {
-                    !isPerdido && lead.status === 'visita_marcada' && lead.dataVisita && new Date(lead.dataVisita) < new Date() && (
+                    !isPerdido && lead.status === 'visita_marcada' && lead.dataVisita && !lead.visitaRealizadaEm && new Date(lead.dataVisita) < new Date() && (
                         <div className="mb-6 bg-brand/5 border border-brand/20 rounded-xl p-5 animate-in slide-in-from-top-4">
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-brand text-white rounded-lg shadow-sm">

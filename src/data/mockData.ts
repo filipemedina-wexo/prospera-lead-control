@@ -160,6 +160,7 @@ export interface Lead {
     firstResponseAt?: string;
     visualizadoEm?: string;
     dataVisita?: string; // ISO string for scheduled visit
+    visitaRealizadaEm?: string;
     historico: HistoricoEntry[];
     publicToken?: string;
     origem?: {
