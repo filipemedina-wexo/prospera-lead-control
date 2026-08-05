@@ -20,7 +20,7 @@ export function ProfileSwitcher() {
 
   useEffect(() => {
     if (!live || !actualProfile?.is_superadmin) return;
-    supabase.from('profiles').select('id, incorporadora_id, gestora_id, imobiliaria_id, role, is_superadmin, nome, email').order('nome')
+    supabase.from('profiles').select('id, incorporadora_id, gestora_id, imobiliaria_id, corretor_id, role, is_superadmin, nome, email').order('nome')
       .then(({ data }) => setTargets((data || []) as ProfileTarget[]));
   }, [live, actualProfile?.is_superadmin]);
 
