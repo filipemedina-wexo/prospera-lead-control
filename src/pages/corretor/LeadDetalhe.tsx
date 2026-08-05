@@ -110,9 +110,9 @@ export function LeadDetalhe() {
         setPendingStatus(null);
         setDataVisita('');
         setHoraVisita('');
-        if (statusToPersist && lead) {
+        if (lead) {
             const visitAt = statusToPersist === 'visita_marcada' && dataVisita && horaVisita ? `${dataVisita}T${horaVisita}:00` : undefined;
-            void atualizarLead(lead.id, statusToPersist, noteToPersist, visitAt).catch(() => undefined);
+            void atualizarLead(lead.id, statusToPersist || lead.status, noteToPersist, visitAt).catch(() => undefined);
         }
     };
 
