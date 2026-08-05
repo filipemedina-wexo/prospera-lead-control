@@ -83,6 +83,7 @@ function PageRouter() {
             case 'admin-incorporadoras': return <GestaoIncorporadoras />;
             case 'admin-imobiliarias': return <GestaoImobiliarias />;
             case 'admin-corretores': return <GestaoCorretores />;
+            case 'captacao': return <ConfiguracaoCaptacao />;
             default: return <DashboardAdmin />;
         }
     }
