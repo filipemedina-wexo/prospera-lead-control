@@ -36,8 +36,22 @@ Deno.serve(async (request) => {
   })
   if (inviteError || !invited.user) return json({ error: inviteError?.message || 'Não foi possível enviar o convite.' }, 422)
   const role = body.papel === 'corretor' ? 'corretor' : org.tipo
+  let corretorId: string | null = null
+  if (body.papel === 'corretor') {
+    if (!org.gestora_id && !org.imobiliaria_id) return json({ error: 'Corretor precisa pertencer a uma gestora ou imobiliÃ¡ria.' }, 422)
+    const { data: existingBroker, error: brokerLookupError } = await admin.from('corretores').select('id').eq('email', email).maybeSingle()
+    if (brokerLookupError) return json({ error: brokerLookupError.message }, 500)
+    if (existingBroker) corretorId = existingBroker.id
+    else {
+      const { data: broker, error: brokerError } = await admin.from('corretores').insert({
+        nome: email.split('@')[0], email, gestora_id: org.gestora_id || null, imobiliaria_id: org.imobiliaria_id || null, ativo: true,
+      }).select('id').single()
+      if (brokerError || !broker) return json({ error: brokerError?.message || 'NÃ£o foi possÃ­vel preparar o corretor.' }, 500)
+      corretorId = broker.id
+    }
+  }
   const { error: profileError } = await admin.from('profiles').update({
-    email, role, incorporadora_id: org.incorporadora_id, gestora_id: org.gestora_id, imobiliaria_id: org.imobiliaria_id,
+    email, role, incorporadora_id: org.incorporadora_id, gestora_id: org.gestora_id, imobiliaria_id: org.imobiliaria_id, corretor_id: corretorId,
   }).eq('id', invited.user.id)
   if (profileError) return json({ error: profileError.message }, 500)
   const { error: memberError } = await admin.from('organizacao_membros').upsert({ organizacao_id: org.id, profile_id: invited.user.id, papel: body.papel, ativo: true })
