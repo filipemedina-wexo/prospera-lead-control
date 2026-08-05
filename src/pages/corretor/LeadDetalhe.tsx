@@ -222,8 +222,8 @@ export function LeadDetalhe() {
         const visualizadoEm = new Date().toISOString();
         void marcarLeadComoLido(lead.id).then(readAt => setLoadedLead(current => current ? { ...current, visualizadoEm: readAt } : current)).catch(() => undefined);
         return;
-        lead.historico.unshift({
-            id: `lead-visto-${lead.id}`,
+        lead?.historico.unshift({
+            id: `lead-visto-${lead?.id}`,
             data: visualizadoEm,
             tipo: 'lead_visualizado',
             descricao: 'Lead visualizado pelo corretor',
