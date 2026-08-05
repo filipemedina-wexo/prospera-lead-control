@@ -219,30 +219,12 @@ export function LeadDetalhe() {
     // Abrir o detalhe confirma somente a leitura: não altera etapa nem conta como contato.
     useEffect(() => {
         if (!lead || lead.visualizadoEm) return;
-        const visualizadoEm = new Date().toISOString();
         void marcarLeadComoLido(lead.id).then(readAt => setLoadedLead(current => current ? { ...current, visualizadoEm: readAt } : current)).catch(() => undefined);
-        return;
-        lead?.historico.unshift({
-            id: `lead-visto-${lead?.id}`,
-            data: visualizadoEm,
-            tipo: 'lead_visualizado',
-            descricao: 'Lead visualizado pelo corretor',
-            autor: 'João Mendes',
-        });
-    }, [lead]);
+    }, [lead, setLoadedLead]);
 
-    // Simulate Auto-Close check on mount
+    // Auto-close is deliberately disabled until it has a server-side inactivity policy.
     useEffect(() => {
         setAutoCloseWarning(false);
-        return;
-        if (lead?.status === 'em_atendimento') {
-            // Mock logic: randomly decide if this lead is "stale" for demo purposes
-            // In real app, check (now - lead.lastUpdate > 48h)
-            const isStale = Math.random() > 0.8; // 20% chance of being stale for demo
-            if (isStale) {
-                setAutoCloseWarning(true);
-            }
-        }
     }, [lead]);
 
     if (leadLoading) {
