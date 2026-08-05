@@ -8,6 +8,7 @@ type LeadRow = {
   id: string; nome: string; telefone: string; email: string | null; empreendimento_id: string; imobiliaria_id: string | null;
   corretor_id: string | null; status: LeadStatus; tentativas_contato: number; ultima_tentativa: string | null; motivo_perdido: string | null;
   data_visita: string | null; first_response_at: string | null; public_token: string | null; criado_em: string;
+  origem?: { canal?: string; campanha?: string | { nome?: string } } | null;
   empreendimento?: { nome: string } | null;
   historico_leads?: Array<{ id: string; tipo: HistoricoEntry['tipo']; descricao: string; autor: string | null; de: string | null; para: string | null; criado_em: string }>;
   leituras_lead?: Array<{ primeira_leitura_em: string }>;
@@ -21,6 +22,10 @@ function toLead(row: LeadRow): Lead {
     motivoPerdido: row.motivo_perdido || undefined, dataVisita: row.data_visita || undefined,
     firstResponseAt: row.first_response_at || undefined, publicToken: row.public_token || undefined, criadoEm: row.criado_em,
     visualizadoEm: row.leituras_lead?.[0]?.primeira_leitura_em,
+    origem: row.origem?.canal ? {
+      canal: row.origem.canal,
+      campanha: typeof row.origem.campanha === 'string' ? row.origem.campanha : row.origem.campanha?.nome || '',
+    } : undefined,
     historico: (row.historico_leads || []).map(item => ({ id: item.id, tipo: item.tipo, descricao: item.descricao, autor: item.autor || undefined, de: item.de || undefined, para: item.para || undefined, data: item.criado_em })),
   };
 }
@@ -75,6 +80,59 @@ export function useTenantLeads(incorporadoraId?: string | null) {
 
     return () => { alive = false; };
   }, [incorporadoraId]);
+
+  return { items, loading, error };
+}
+
+export type AgencyBroker = { id: string; nome: string; email: string | null; ativo: boolean };
+
+export function useAgencyLeads(imobiliariaId?: string | null) {
+  const [items, setItems] = useState<Lead[]>(() => isMockMode ? mockLeads.filter((lead) => lead.imobiliariaId === 'imob-1') : []);
+  const [loading, setLoading] = useState(!isMockMode);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isMockMode) return;
+    let alive = true;
+    if (!imobiliariaId) { setItems([]); setLoading(false); return; }
+
+    supabase.from('leads')
+      .select('*, empreendimento:empreendimentos(nome), historico_leads(*), leituras_lead(primeira_leitura_em)')
+      .eq('imobiliaria_id', imobiliariaId)
+      .order('criado_em', { ascending: false })
+      .then(({ data, error: queryError }) => {
+        if (!alive) return;
+        if (queryError) { setError(queryError.message); setItems([]); }
+        else setItems(((data || []) as LeadRow[]).map(toLead));
+        setLoading(false);
+      });
+
+    return () => { alive = false; };
+  }, [imobiliariaId]);
+
+  return { items, loading, error };
+}
+
+export function useAgencyBrokers(imobiliariaId?: string | null) {
+  const [items, setItems] = useState<AgencyBroker[]>([]);
+  const [loading, setLoading] = useState(!isMockMode);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isMockMode) { setLoading(false); return; }
+    let alive = true;
+    if (!imobiliariaId) { setItems([]); setLoading(false); return; }
+
+    supabase.from('corretores').select('id,nome,email,ativo').eq('imobiliaria_id', imobiliariaId).order('nome')
+      .then(({ data, error: queryError }) => {
+        if (!alive) return;
+        if (queryError) { setError(queryError.message); setItems([]); }
+        else setItems((data || []) as AgencyBroker[]);
+        setLoading(false);
+      });
+
+    return () => { alive = false; };
+  }, [imobiliariaId]);
 
   return { items, loading, error };
 }

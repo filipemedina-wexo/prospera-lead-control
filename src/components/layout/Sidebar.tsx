@@ -25,6 +25,10 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
             { icon: ClipboardList, label: 'Leads', id: 'leads' },
             { icon: Shuffle, label: 'Distribuição', id: 'distribuicao' },
         ],
+        imobiliaria: [
+            { icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' },
+            { icon: ClipboardList, label: 'Leads', id: 'leads' },
+        ],
         corretor: [{ icon: ClipboardList, label: 'Meus leads', id: 'meus-leads' }],
     };
     const visibleNav = isLiveMode ? (liveNav[profile] || []) : navByProfile[profile];
