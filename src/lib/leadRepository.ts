@@ -165,3 +165,10 @@ export async function atualizarLead(leadId: string, status: LeadStatus, observac
   });
   if (error) throw error;
 }
+
+export async function registrarTentativaContato(leadId: string) {
+  if (isMockMode) return 1;
+  const { data, error } = await supabase.rpc('registrar_tentativa_contato', { p_lead_id: leadId });
+  if (error) throw error;
+  return data as number;
+}

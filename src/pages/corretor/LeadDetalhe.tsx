@@ -12,7 +12,7 @@ import {
     statusLabels,
     type LeadStatus,
 } from '../../data/mockData';
-import { atualizarLead, marcarLeadComoLido, useLead } from '../../lib/leadRepository';
+import { atualizarLead, marcarLeadComoLido, registrarTentativaContato, useLead } from '../../lib/leadRepository';
 import { triggerReward } from '../../utils/confetti';
 
 interface Nota {
@@ -67,8 +67,8 @@ export function LeadDetalhe() {
         },
     ] : []);
     const [tentativasContato, setTentativasContato] = useState(0);
+    const [savingAttempt, setSavingAttempt] = useState(false);
     const [autoCloseWarning, setAutoCloseWarning] = useState(false);
-    const [, setReadVersion] = useState(0);
 
     // Live SLA timer
     const [now, setNow] = useState(Date.now());
@@ -97,10 +97,9 @@ export function LeadDetalhe() {
 
             if (pendingStatus === 'visita_marcada' && dataVisita && horaVisita) {
                 // Mutate mock data for demo
-                lead!.dataVisita = `${dataVisita}T${horaVisita}:00`;
-                lead!.status = pendingStatus; // Force status update
+                setLoadedLead((current) => current ? { ...current, dataVisita: `${dataVisita}T${horaVisita}:00`, status: pendingStatus } : current);
             } else {
-                lead!.status = pendingStatus;
+                setLoadedLead((current) => current ? { ...current, status: pendingStatus } : current);
             }
         } else {
             setXpReward(10);
@@ -151,7 +150,7 @@ export function LeadDetalhe() {
             setTimeout(() => setXpReward(null), 2000);
 
             // Update lead status directly (mock)
-            lead!.status = status;
+            setLoadedLead((current) => current ? { ...current, status } : current);
             void atualizarLead(lead!.id, status, 'Atendimento iniciado').catch(() => undefined);
 
             // Add auto system note
@@ -176,9 +175,19 @@ export function LeadDetalhe() {
         }, 100);
     };
 
-    const handleNoAnswer = () => {
-        const novasTentativas = tentativasContato + 1;
-        setTentativasContato(novasTentativas);
+    const handleNoAnswer = async () => {
+        if (!lead || savingAttempt) return;
+        setSavingAttempt(true);
+        let novasTentativas = tentativasContato;
+        try {
+            novasTentativas = await registrarTentativaContato(lead.id);
+            setTentativasContato(novasTentativas);
+            setLoadedLead((current) => current ? { ...current, tentativasContato: novasTentativas, ultimaTentativa: new Date().toISOString() } : current);
+        } catch {
+            return;
+        } finally {
+            setSavingAttempt(false);
+        }
 
         // Add auto system note
         const nova: Nota = {
@@ -212,7 +221,7 @@ export function LeadDetalhe() {
         if (!lead || lead.visualizadoEm) return;
         const visualizadoEm = new Date().toISOString();
         void marcarLeadComoLido(lead.id).then(readAt => setLoadedLead(current => current ? { ...current, visualizadoEm: readAt } : current)).catch(() => undefined);
-        lead.visualizadoEm = visualizadoEm;
+        return;
         lead.historico.unshift({
             id: `lead-visto-${lead.id}`,
             data: visualizadoEm,
@@ -220,11 +229,12 @@ export function LeadDetalhe() {
             descricao: 'Lead visualizado pelo corretor',
             autor: 'João Mendes',
         });
-        setReadVersion(version => version + 1);
     }, [lead]);
 
     // Simulate Auto-Close check on mount
     useEffect(() => {
+        setAutoCloseWarning(false);
+        return;
         if (lead?.status === 'em_atendimento') {
             // Mock logic: randomly decide if this lead is "stale" for demo purposes
             // In real app, check (now - lead.lastUpdate > 48h)
@@ -527,7 +537,7 @@ export function LeadDetalhe() {
                                     {lead.status === 'em_atendimento' && !autoCloseWarning && (
                                         <button
                                             onClick={handleNoAnswer}
-                                            disabled={tentativasContato >= 3}
+                                            disabled={tentativasContato >= 3 || savingAttempt}
                                             className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl transition-all border ${tentativasContato >= 2
                                                 ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
                                                 : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'
