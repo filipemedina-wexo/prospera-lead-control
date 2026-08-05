@@ -55,7 +55,7 @@ export function LeadDetalhe() {
     const [dataVisita, setDataVisita] = useState('');
     const [horaVisita, setHoraVisita] = useState('');
     const [linkCopied, setLinkCopied] = useState(false);
-    const [notas, setNotas] = useState<Nota[]>([
+    const [notas, setNotas] = useState<Nota[]>(() => import.meta.env.VITE_APP_MODE === 'mock' ? [
         {
             id: 'nota-1',
             texto: 'Primeiro contato feito por ligação. Lead interessado no 2 quartos, perguntou sobre financiamento. Achou a entrada cara.',
@@ -65,7 +65,7 @@ export function LeadDetalhe() {
             statusDe: 'novo',
             statusPara: 'contatado',
         },
-    ]);
+    ] : []);
     const [tentativasContato, setTentativasContato] = useState(0);
     const [autoCloseWarning, setAutoCloseWarning] = useState(false);
     const [, setReadVersion] = useState(0);
