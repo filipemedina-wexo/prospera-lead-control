@@ -18,6 +18,7 @@ export function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: Side
     const { profile, currentPage, setCurrentPage } = useApp();
     const isLiveMode = import.meta.env.PROD && import.meta.env.VITE_APP_MODE !== 'mock';
     const liveNav: Partial<Record<UserProfile, NavItem[]>> = {
+        admin: navByProfile.admin,
         incorporadora: [{ icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' }, { icon: ClipboardList, label: 'Leads', id: 'leads' }, { icon: Building2, label: 'Empreendimentos', id: 'empreendimentos' }, { icon: Megaphone, label: 'Captação', id: 'captacao' }],
         gestora_lancamentos: [
             { icon: LayoutDashboard, label: 'Cockpit', id: 'dashboard' },
