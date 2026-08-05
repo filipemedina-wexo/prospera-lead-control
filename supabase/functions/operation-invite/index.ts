@@ -1,9 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 
 type InviteBody = { email?: string; organizacao_id?: string; papel?: 'admin' | 'gestor' | 'corretor'; redirect_to?: string }
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+const allowedOrigins = new Set(['https://leadcontrol.useprospera.com.br', 'http://localhost:3000'])
+const corsHeaders = (origin: string | null) => ({
+  'Access-Control-Allow-Origin': origin && allowedOrigins.has(origin) ? origin : 'https://leadcontrol.useprospera.com.br',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Vary': 'Origin',
+})
 
 Deno.serve(async (request) => {
+  const headers = corsHeaders(request.headers.get('origin'))
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...headers, 'Content-Type': 'application/json' } })
+  if (request.method === 'OPTIONS') return new Response('ok', { headers })
   if (request.method !== 'POST') return json({ error: 'Método não permitido.' }, 405)
   const authHeader = request.headers.get('Authorization') || ''
   const token = authHeader.replace(/^Bearer\s+/i, '')
