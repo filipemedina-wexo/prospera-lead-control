@@ -9,29 +9,33 @@ import type { UserProfile } from '../../data/mockData';
 
 type Tipo = 'incorporadora' | 'gestora_lancamentos' | 'imobiliaria';
 type Organizacao = { id: string; nome: string; tipo: Tipo; organizacao_membros: Array<{ ativo: boolean }> };
+type Incorporadora = { id: string; nome: string };
 const labels: Record<Tipo, string> = { incorporadora: 'Incorporadora', gestora_lancamentos: 'Gestora de Lançamentos', imobiliaria: 'Imobiliária' };
 const roleLabels: Record<Profile['role'], string> = { incorporadora: 'Incorporadora', gestora_lancamentos: 'Gestora de Lançamentos', imobiliaria: 'Imobiliária', corretor: 'Corretor' };
 
 export function GestaoIncorporadoras() {
   const [items, setItems] = useState<Organizacao[]>([]);
+  const [incorporadoras, setIncorporadoras] = useState<Incorporadora[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nome, setNome] = useState(''); const [tipo, setTipo] = useState<Tipo>('incorporadora');
   const [invite, setInvite] = useState({ email: '', organizacao_id: '', papel: 'admin' }); const [sending, setSending] = useState(false);
   const [profileFilter, setProfileFilter] = useState(''); const [assumingId, setAssumingId] = useState<string | null>(null);
-  const { actualProfile, startOperatingAs } = useAuth();
+  const { actualProfile, startOperatingAs, startOperatingOrganization } = useAuth();
   const { setProfile } = useApp();
 
   async function load() {
     setLoading(true);
-    const [{ data, error: organizationsError }, { data: profilesData, error: profilesError }] = await Promise.all([
+    const [{ data, error: organizationsError }, { data: profilesData, error: profilesError }, { data: incorporadorasData, error: incorporadorasError }] = await Promise.all([
       supabase.from('organizacoes').select('id,nome,tipo,organizacao_membros(ativo)').order('nome'),
       supabase.from('profiles').select('id, incorporadora_id, gestora_id, imobiliaria_id, corretor_id, role, is_superadmin, nome, email').order('nome'),
+      supabase.from('incorporadoras').select('id,nome').order('nome'),
     ]);
     if (organizationsError) setError(organizationsError.message);
     else { setItems((data || []) as Organizacao[]); setInvite(current => ({ ...current, organizacao_id: current.organizacao_id || data?.[0]?.id || '' })); }
     if (profilesError) setError(profilesError.message); else setProfiles((profilesData || []) as Profile[]);
+    if (incorporadorasError) setError(incorporadorasError.message); else setIncorporadoras((incorporadorasData || []) as Incorporadora[]);
     setLoading(false);
   }
   useEffect(() => { const timer = window.setTimeout(() => { void load(); }, 0); return () => window.clearTimeout(timer); }, []);
@@ -55,6 +59,11 @@ export function GestaoIncorporadoras() {
     try { await startOperatingAs(profile); setProfile(profile.role as UserProfile); }
     catch (cause) { setError(cause && typeof cause === 'object' && 'message' in cause ? String(cause.message) : 'Não foi possível iniciar a operação assistida.'); setAssumingId(null); }
   }
+  async function assumeIncorporadora(incorporadora: Incorporadora) {
+    setAssumingId(incorporadora.id); setError(null);
+    try { await startOperatingOrganization({ id: incorporadora.id, nome: incorporadora.nome, incorporadora_id: incorporadora.id }); setProfile('incorporadora'); }
+    catch (cause) { setError(cause && typeof cause === 'object' && 'message' in cause ? String(cause.message) : 'Não foi possível abrir esta incorporadora.'); setAssumingId(null); }
+  }
 
   return <div className="space-y-6 pb-12">
     <div><h1 className="text-2xl font-bold">Organizações e acessos</h1><p className="text-sm text-text-secondary mt-1">Dados reais da operação multi-organização. Convites são enviados pelo servidor.</p></div>
@@ -69,5 +78,6 @@ export function GestaoIncorporadoras() {
     <Card className="p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-4"><div><h2 className="font-semibold flex gap-2 items-center"><Shield size={17} />Operar como usuário</h2><p className="text-xs text-text-muted mt-1">Abre a plataforma na visão do usuário selecionado. A sua conta continua autenticada e a ação fica registrada.</p></div><label className="flex items-center gap-2 input h-9 w-full sm:w-72"><Search size={15} className="text-text-muted" /><input value={profileFilter} onChange={event => setProfileFilter(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Buscar nome, e-mail ou perfil" /></label></div>
       {loading ? <div className="py-8 flex justify-center"><LoaderCircle className="animate-spin text-text-muted" /></div> : <div className="divide-y divide-border">{visibleProfiles.map(profile => <div key={profile.id} className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center"><div className="w-9 h-9 rounded-full bg-brand/10 text-brand flex items-center justify-center font-bold text-sm shrink-0">{(profile.nome || profile.email || '?').charAt(0).toUpperCase()}</div><div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{profile.nome || 'Usuário sem nome'}</p><p className="text-xs text-text-muted truncate">{profile.email || 'E-mail não informado'} · {roleLabels[profile.role]}</p></div><Button variant="secondary" disabled={assumingId !== null || !actualProfile?.is_superadmin} className="gap-2 text-xs" onClick={() => void assume(profile)}><Eye size={15} />{assumingId === profile.id ? 'Abrindo…' : 'Acessar como'}</Button></div>)}{!visibleProfiles.length && <p className="py-8 text-center text-sm text-text-muted">Nenhum usuário operacional encontrado.</p>}</div>}
     </Card>
+    <Card className="p-5"><div className="mb-4"><h2 className="font-semibold flex gap-2 items-center"><Building2 size={17} />Operar como incorporadora</h2><p className="text-xs text-text-muted mt-1">Use quando a empresa já existe na operação, mesmo sem um usuário próprio criado.</p></div>{loading ? <div className="py-8 flex justify-center"><LoaderCircle className="animate-spin text-text-muted" /></div> : <div className="divide-y divide-border">{incorporadoras.map(incorporadora => <div key={incorporadora.id} className="flex items-center gap-3 py-3"><div className="w-9 h-9 rounded-lg bg-brand/10 text-brand flex items-center justify-center shrink-0"><Building2 size={17} /></div><div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{incorporadora.nome}</p><p className="text-xs text-text-muted">Incorporadora</p></div><Button variant="secondary" disabled={assumingId !== null || !actualProfile?.is_superadmin} className="gap-2 text-xs" onClick={() => void assumeIncorporadora(incorporadora)}><Eye size={15} />{assumingId === incorporadora.id ? 'Abrindo…' : 'Operar como incorporadora'}</Button></div>)}{!incorporadoras.length && <p className="py-8 text-center text-sm text-text-muted">Nenhuma incorporadora cadastrada.</p>}</div>}</Card>
   </div>;
 }

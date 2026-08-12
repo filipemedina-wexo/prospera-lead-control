@@ -14,6 +14,12 @@ export interface Profile {
   email: string | null;
 }
 
+export interface OperatingOrganization {
+  id: string;
+  nome: string;
+  incorporadora_id: string;
+}
+
 interface AuthContextValue {
   user: User | null;
   profile: Profile | null;
@@ -22,6 +28,7 @@ interface AuthContextValue {
   loading: boolean;
   signOut: () => Promise<void>;
   startOperatingAs: (target: Profile) => Promise<void>;
+  startOperatingOrganization: (target: OperatingOrganization) => Promise<void>;
   stopOperatingAs: () => Promise<void>;
 }
 
@@ -33,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => isDemoMode ? demoUser : null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [actualProfile, setActualProfile] = useState<Profile | null>(null);
+  const [operatingOrganization, setOperatingOrganization] = useState<OperatingOrganization | null>(null);
   const [loading, setLoading] = useState(() => !isDemoMode);
 
   async function fetchProfile(userId: string) {
@@ -45,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const loaded = data as Profile;
     setActualProfile(loaded);
     setProfile(loaded);
+    setOperatingOrganization(null);
   }
 
   useEffect(() => {
@@ -87,16 +96,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(null);
     setActualProfile(null);
+    setOperatingOrganization(null);
   }
 
   async function startOperatingAs(target: Profile) {
     if (!actualProfile?.is_superadmin) return;
     const { error } = await supabase.rpc('registrar_operacao_assistida', { p_alvo_id: target.id, p_acao: 'iniciar' });
     if (error) throw error;
+    setOperatingOrganization(null);
     setProfile(target);
+  }
+  async function startOperatingOrganization(target: OperatingOrganization) {
+    if (!actualProfile?.is_superadmin) return;
+    const { error } = await supabase.rpc('registrar_operacao_assistida_organizacao', { p_incorporadora_id: target.incorporadora_id, p_acao: 'iniciar' });
+    if (error) throw error;
+    setOperatingOrganization(target);
+    setProfile({ id: `organizacao:${target.id}`, incorporadora_id: target.incorporadora_id, gestora_id: null, imobiliaria_id: null, corretor_id: null, role: 'incorporadora', is_superadmin: false, nome: target.nome, email: null });
   }
   async function stopOperatingAs() {
     if (!actualProfile?.is_superadmin) return;
+    if (operatingOrganization) {
+      const { error } = await supabase.rpc('registrar_operacao_assistida_organizacao', { p_incorporadora_id: operatingOrganization.incorporadora_id, p_acao: 'encerrar' });
+      if (error) throw error;
+      setOperatingOrganization(null);
+      setProfile(actualProfile);
+      return;
+    }
     if (profile && profile.id !== actualProfile.id) {
       const { error } = await supabase.rpc('registrar_operacao_assistida', { p_alvo_id: profile.id, p_acao: 'encerrar' });
       if (error) throw error;
@@ -104,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(actualProfile);
   }
 
-  return <AuthContext.Provider value={{ user, profile, actualProfile, loading, signOut, startOperatingAs, stopOperatingAs }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, profile, actualProfile, loading, signOut, startOperatingAs, startOperatingOrganization, stopOperatingAs }}>{children}</AuthContext.Provider>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
