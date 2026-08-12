@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import {
     Shuffle, Settings, CheckCircle2, XCircle, Clock,
     ChevronDown, ChevronRight, Users, Building2, Info,
@@ -7,10 +7,13 @@ import {
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import {
-    corretores, empreendimentos, leads, filaRoleta,
+    corretores, empreendimentos, imobiliarias, leads, filaRoleta,
     type Corretor, type FilaRoleta
 } from '../../data/mockData';
 import { cn } from '../../lib/utils';
+import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { DistribuicaoLive } from './DistribuicaoLive';
 
 const IMOB_ID = 'imob-1';
 
@@ -358,9 +361,131 @@ function FilaItemRow({ fila, posicao, isProximo }: {
 }
 
 // ---------- Página principal ----------
-export function RoletaLeads() {
+type GestoraFilaEntry = {
+    id: string;
+    tipo: 'house' | 'imobiliaria';
+    corretorId?: string;
+    imobiliariaId?: string;
+    ativo: boolean;
+};
+
+function GestoraFilaModal({
+    empNome,
+    entries: entriesInicial,
+    houseCorretores,
+    imobiliarias: imobiliariasDisponiveis,
+    onClose,
+    onSave,
+}: {
+    empNome: string;
+    entries: GestoraFilaEntry[];
+    houseCorretores: Corretor[];
+    imobiliarias: typeof imobiliarias;
+    onClose: () => void;
+    onSave: (entries: GestoraFilaEntry[]) => void;
+}) {
+    const [entries, setEntries] = useState(entriesInicial.map(entry => ({ ...entry })));
+    const [novoTipo, setNovoTipo] = useState<'house' | 'imobiliaria'>('house');
+    const [novoId, setNovoId] = useState('');
+    const ativos = entries.filter(entry => entry.ativo);
+    const inativos = entries.filter(entry => !entry.ativo);
+
+    const getLabel = (entry: GestoraFilaEntry) => entry.tipo === 'house'
+        ? houseCorretores.find(corretor => corretor.id === entry.corretorId)?.nome || 'Corretor da House'
+        : imobiliariasDisponiveis.find(imob => imob.id === entry.imobiliariaId)?.nome || 'Imobiliária parceira';
+
+    const toggle = (id: string) => setEntries(current => current.map(entry => entry.id === id ? { ...entry, ativo: !entry.ativo } : entry));
+
+    const move = (id: string, direction: -1 | 1) => setEntries(current => {
+        const active = current.filter(entry => entry.ativo);
+        const index = active.findIndex(entry => entry.id === id);
+        const target = index + direction;
+        if (index < 0 || target < 0 || target >= active.length) return current;
+        [active[index], active[target]] = [active[target], active[index]];
+        return [...active, ...current.filter(entry => !entry.ativo)];
+    });
+
+    const add = () => {
+        if (!novoId) return;
+        const duplicate = entries.some(entry => entry.tipo === novoTipo && (novoTipo === 'house' ? entry.corretorId === novoId : entry.imobiliariaId === novoId));
+        if (duplicate) return;
+        setEntries(current => [...current, { id: `${novoTipo}-${novoId}`, tipo: novoTipo, ativo: true, ...(novoTipo === 'house' ? { corretorId: novoId } : { imobiliariaId: novoId }) }]);
+        setNovoId('');
+    };
+
+    const EntryRow = ({ entry, index, paused = false }: { entry: GestoraFilaEntry; index: number; paused?: boolean }) => (
+        <div className={cn('flex items-center gap-3 py-3 px-3 rounded-xl border', entry.ativo ? 'border-border bg-transparent' : 'border-border/40 bg-black/[0.02] opacity-70')}>
+            <div className="flex flex-col gap-0.5 w-4">
+                {!paused && <><button onClick={() => move(entry.id, -1)} disabled={index === 0} className={cn('p-0.5 rounded text-text-muted', index === 0 ? 'opacity-20' : 'hover:bg-black/10')}><ArrowUp size={11} /></button><button onClick={() => move(entry.id, 1)} disabled={index === ativos.length - 1} className={cn('p-0.5 rounded text-text-muted', index === ativos.length - 1 ? 'opacity-20' : 'hover:bg-black/10')}><ArrowDown size={11} /></button></>}
+            </div>
+            <span className={cn('text-sm font-bold w-5 text-center', paused ? 'text-text-muted' : 'text-brand')}>{paused ? '—' : index + 1}</span>
+            <div className={cn('w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0', entry.tipo === 'house' ? 'bg-brand/10 text-brand' : 'bg-amber-50 text-amber-700')}>{entry.tipo === 'house' ? <Users size={16} /> : <Building2 size={16} />}</div>
+            <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><span className="text-sm font-medium truncate">{getLabel(entry)}</span><span className={cn('text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0', entry.tipo === 'house' ? 'bg-brand/10 text-brand' : 'bg-amber-50 text-amber-700')}>{entry.tipo === 'house' ? 'House' : 'Parceira'}</span></div><p className="text-[10px] text-text-muted mt-1">{entry.tipo === 'house' ? 'Ordem controlada pela Gestora' : 'Bloco; ordem dos corretores fica na imobiliária'}</p></div>
+            <button onClick={() => toggle(entry.id)} className={cn('shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-medium', entry.ativo ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-green-200 bg-green-50 text-green-700')}>{entry.ativo ? <><PauseCircle size={13} />Remover</> : <><PlayCircle size={13} />Adicionar</>}</button>
+        </div>
+    );
+
+    return <><div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} /><div className="fixed inset-x-4 top-8 bottom-8 sm:inset-auto sm:right-0 sm:top-0 sm:bottom-0 sm:w-[480px] bg-bg z-50 flex flex-col shadow-2xl sm:rounded-none rounded-2xl overflow-hidden border border-border">
+        <div className="p-5 border-b border-border shrink-0"><div className="flex items-start justify-between"><div><p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-1">Gerenciar distribuição</p><h2 className="font-bold text-lg leading-tight">{empNome}</h2><p className="text-sm text-text-muted mt-0.5">A Gestora ordena a House e os blocos parceiros</p></div><button onClick={onClose} className="p-2 rounded-lg hover:bg-black/5 text-text-muted"><X size={20} /></button></div><div className="mt-4 flex items-end gap-2"><div className="flex-1"><label className="text-[10px] text-text-muted uppercase">Adicionar na fila</label><div className="flex gap-2 mt-1"><select className="input text-xs h-9" value={novoTipo} onChange={event => { setNovoTipo(event.target.value as 'house' | 'imobiliaria'); setNovoId(''); }}><option value="house">House</option><option value="imobiliaria">Imobiliária parceira</option></select><select className="input text-xs h-9 flex-1" value={novoId} onChange={event => setNovoId(event.target.value)}><option value="">Selecionar...</option>{(novoTipo === 'house' ? houseCorretores : imobiliariasDisponiveis).map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></div></div><Button variant="secondary" className="h-9 text-xs" onClick={add}>Adicionar</Button></div></div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-6"><div><p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2"><CheckCircle2 size={12} className="text-green-500" />Fila ativa ({ativos.length})</p><div className="space-y-2">{ativos.map((entry, index) => <EntryRow key={entry.id} entry={entry} index={index} />)}{ativos.length === 0 && <p className="text-sm text-text-muted text-center py-6">Nenhuma House ou parceira na fila</p>}</div></div>{inativos.length > 0 && <div><p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2"><PauseCircle size={12} className="text-slate-400" />Fora da fila ({inativos.length})</p><div className="space-y-2">{inativos.map((entry, index) => <EntryRow key={entry.id} entry={entry} index={index} paused />)}</div></div>}</div>
+        <div className="p-4 border-t border-border bg-bg shrink-0 flex gap-2"><Button variant="secondary" className="flex-1 h-10" onClick={onClose}>Cancelar</Button><Button className="flex-1 h-10" onClick={() => { onSave(entries); onClose(); }}>Salvar fila</Button></div>
+    </div></>;
+}
+
+function GestoraDistribuicao() {
     const [expandedEmp, setExpandedEmp] = useState<string | null>('emp-1');
     const [gerenciarEmpId, setGerenciarEmpId] = useState<string | null>(null);
+    const houseCorretores = corretores.filter(corretor => corretor.imobiliariaId === null);
+    const [filas, setFilas] = useState<Record<string, GestoraFilaEntry[]>>(() => Object.fromEntries(
+        empreendimentos.map((emp, index) => [emp.id, [
+            { id: `house-house-cor-1-${emp.id}`, tipo: 'house', corretorId: 'house-cor-1', ativo: index !== 3 },
+            { id: `imob-imob-1-${emp.id}`, tipo: 'imobiliaria', imobiliariaId: 'imob-1', ativo: index !== 3 },
+            { id: `house-house-cor-2-${emp.id}`, tipo: 'house', corretorId: 'house-cor-2', ativo: index === 0 || index === 2 },
+            { id: `imob-imob-2-${emp.id}`, tipo: 'imobiliaria', imobiliariaId: 'imob-2', ativo: index === 0 },
+            { id: `imob-imob-3-${emp.id}`, tipo: 'imobiliaria', imobiliariaId: 'imob-3', ativo: false },
+        ] as GestoraFilaEntry[]])
+    ));
+
+    const filaAtiva = (empId: string) => filas[empId]?.filter(entry => entry.ativo) || [];
+    const getEntryLabel = (entry: GestoraFilaEntry) => entry.tipo === 'house'
+        ? houseCorretores.find(corretor => corretor.id === entry.corretorId)?.nome
+        : imobiliarias.find(imob => imob.id === entry.imobiliariaId)?.nome;
+    const balanceamento = corretores.map(corretor => ({ corretor, totalLeads: leads.filter(lead => lead.corretorId === corretor.id).length })).sort((a, b) => b.totalLeads - a.totalLeads);
+    const maxLeads = Math.max(...balanceamento.map(item => item.totalLeads), 1);
+    const historico = leads.slice().sort((a, b) => new Date(b.criadoEm).getTime() - new Date(a.criadoEm).getTime()).slice(0, 8);
+    const gerenciarEmp = gerenciarEmpId ? empreendimentos.find(emp => emp.id === gerenciarEmpId) : null;
+
+    return <>
+        <div className="space-y-6">
+            <div><h1 className="text-2xl font-bold tracking-tight">Distribuição de Leads</h1><p className="text-text-secondary text-sm mt-1">Configuração da fila — Gestora de Lançamentos</p></div>
+            <Card className="p-4 bg-brand/5 border-brand/20"><div className="flex items-start gap-3"><Info size={16} className="text-brand shrink-0 mt-0.5" /><p className="text-sm text-text-secondary">A Gestora define a ordem dos corretores da <strong className="text-text-primary">House</strong> e a posição das <strong className="text-text-primary">imobiliárias parceiras</strong>. Cada parceira mantém a ordem dos próprios corretores.</p></div></Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4"><h2 className="text-base font-semibold flex items-center gap-2"><Shuffle size={18} className="text-brand" />Fila por Empreendimento</h2>{empreendimentos.map(emp => {
+                    const isOpen = expandedEmp === emp.id;
+                    const fila = filaAtiva(emp.id);
+                    const proximo = fila[0];
+                    return <Card key={emp.id} className="overflow-hidden"><button className="w-full flex items-center justify-between p-4 text-left hover:bg-black/[0.02]" onClick={() => setExpandedEmp(isOpen ? null : emp.id)}><div className="flex items-center gap-3 min-w-0"><Building2 size={16} className="text-brand shrink-0" /><div className="min-w-0"><p className="font-medium text-sm truncate">{emp.nome}</p>{proximo && <p className="text-xs text-text-muted">Próximo: <span className="text-brand font-medium">{getEntryLabel(proximo)}</span></p>}</div></div><div className="flex items-center gap-3 shrink-0"><span className="text-xs text-text-muted bg-black/5 px-2 py-0.5 rounded-full">{fila.length} ativo{fila.length !== 1 ? 's' : ''}</span>{isOpen ? <ChevronDown size={16} className="text-text-muted" /> : <ChevronRight size={16} className="text-text-muted" />}</div></button>{isOpen && <div className="border-t border-border"><div className="divide-y divide-border/60">{fila.map((entry, index) => <div key={entry.id} className="flex items-center gap-3 px-4 py-3"><span className="w-5 text-center text-xs font-bold text-brand">{index + 1}</span>{entry.tipo === 'house' ? <Users size={15} className="text-brand" /> : <Building2 size={15} className="text-amber-600" />}<div className="flex-1"><span className="text-sm font-medium">{getEntryLabel(entry)}</span><p className="text-[10px] text-text-muted">{entry.tipo === 'house' ? 'House' : 'Imobiliária parceira'}</p></div></div>)}</div><div className="p-3 bg-black/[0.02] flex justify-end"><Button variant="secondary" className="text-xs h-8 gap-2" onClick={() => setGerenciarEmpId(emp.id)}><Settings size={13} />Gerenciar fila</Button></div></div>}</Card>;
+                })}</div>
+                <div className="space-y-6"><Card className="p-5"><h2 className="text-base font-semibold flex items-center gap-2 mb-4"><Users size={17} className="text-brand" />Balanceamento Geral</h2><p className="text-xs text-text-muted mb-4">Distribuição total de leads por corretor no período</p><div className="space-y-3">{balanceamento.map(({ corretor, totalLeads }) => <div key={corretor.id} className="flex items-center gap-3"><div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center text-brand text-xs font-bold shrink-0">{corretor.nome.charAt(0)}</div><div className="flex-1 min-w-0"><div className="flex items-center justify-between mb-1"><span className="text-sm font-medium truncate">{corretor.nome}</span><span className="text-xs ml-2 shrink-0 font-semibold">{totalLeads}</span></div><div className="h-1.5 bg-black/5 rounded-full overflow-hidden"><div className={cn('h-full rounded-full', corretor.imobiliariaId === null ? 'bg-brand' : 'bg-slate-400')} style={{ width: `${(totalLeads / maxLeads) * 100}%` }} /></div></div><span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-700">{corretor.imobiliariaId === null ? 'House' : 'Parceira'}</span></div>)}</div></Card><Card className="p-5"><h2 className="text-sm font-semibold flex items-center gap-2 mb-4"><Clock size={15} className="text-brand" />Últimas Atribuições</h2><div className="space-y-2">{historico.map(lead => { const corretor = corretores.find(item => item.id === lead.corretorId); const emp = empreendimentos.find(item => item.id === lead.empreendimentoId); return <div key={lead.id} className="flex items-start gap-2 py-1.5 border-b border-border/40 last:border-0"><div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center text-brand text-[10px] font-bold shrink-0">{corretor?.nome.charAt(0)}</div><div className="flex-1 min-w-0"><p className="text-xs font-medium truncate">{lead.nome}</p><p className="text-[10px] text-text-muted truncate">→ {corretor?.nome || 'Aguardando'} · {emp?.nome}</p></div><span className="text-[10px] text-text-muted shrink-0">{timeAgo(lead.criadoEm)}</span></div>; })}</div></Card></div>
+            </div>
+        </div>
+        {gerenciarEmpId && gerenciarEmp && <GestoraFilaModal empNome={gerenciarEmp.nome} entries={filas[gerenciarEmpId] || []} houseCorretores={houseCorretores} imobiliarias={imobiliarias} onClose={() => setGerenciarEmpId(null)} onSave={entries => setFilas(current => ({ ...current, [gerenciarEmpId]: entries }))} />}
+    </>;
+}
+
+export function RoletaLeads() {
+    // Hooks precisam ser chamados antes de qualquer desvio para a visão da Gestora.
+    // No modo live o estado não é usado, mas mantém a ordem de hooks estável.
+    const [expandedEmp, setExpandedEmp] = useState<string | null>('emp-1');
+    const [gerenciarEmpId, setGerenciarEmpId] = useState<string | null>(null);
+    const { profile } = useApp();
+    const { profile: authProfile } = useAuth();
+    // Distribuição é sempre operacional. Esta rota não pode cair na antiga
+    // visualização demonstrativa, pois ela mostraria uma fila que não existe
+    // no banco e poderia induzir decisões erradas da Gestora.
+    if (import.meta.env.VITE_APP_MODE !== 'mock') return <DistribuicaoLive authProfile={authProfile} />;
+
+    if (profile === 'gestora_lancamentos') return <GestoraDistribuicao />;
 
     const imobCorretores = corretores.filter(c => c.imobiliariaId === IMOB_ID);
 
@@ -370,8 +495,7 @@ export function RoletaLeads() {
         .map(id => empreendimentos.find(e => e.id === id))
         .filter(Boolean) as typeof empreendimentos;
 
-    const historicoAtribuicoes = useMemo(() => {
-        return imobLeads
+    const historicoAtribuicoes = imobLeads
             .map(l => ({
                 lead: l,
                 corretor: imobCorretores.find(c => c.id === l.corretorId),
@@ -380,7 +504,6 @@ export function RoletaLeads() {
             .filter(h => h.corretor && h.emp)
             .sort((a, b) => new Date(b.lead.criadoEm).getTime() - new Date(a.lead.criadoEm).getTime())
             .slice(0, 8);
-    }, [imobLeads, imobCorretores]);
 
     const balanceamento = imobCorretores.map(c => {
         const total = imobLeads.filter(l => l.corretorId === c.id).length;

@@ -2,7 +2,7 @@
 // TYPES
 // ============================
 
-export type UserProfile = 'admin' | 'incorporadora' | 'imobiliaria' | 'corretor';
+export type UserProfile = 'admin' | 'incorporadora' | 'gestora_lancamentos' | 'imobiliaria' | 'corretor';
 
 export type LeadStatus = 'novo' | 'em_atendimento' | 'contatado' | 'visita_marcada' | 'proposta' | 'venda' | 'perdido';
 
@@ -65,7 +65,7 @@ export interface Imobiliaria {
 export interface Corretor {
     id: string;
     nome: string;
-    imobiliariaId: string;
+    imobiliariaId: string | null;
     ativo: boolean;
     avatarUrl?: string;
     tempoOnline?: number; // horas no período
@@ -85,6 +85,7 @@ export interface MetaCorretor {
 export interface FilaRoleta {
     corretorId: string;
     empreendimentoId: string;
+    empreendimentoNome?: string;
     leadsRecebidos: number;
     ativo: boolean; // participando da roleta para este empreendimento
     ultimoLead?: string; // ISO date
@@ -135,7 +136,7 @@ export interface Aviso {
 export interface HistoricoEntry {
     id: string;
     data: string;
-    tipo: 'status_alterado' | 'lead_criado' | 'lead_distribuido' | 'lead_reatribuido' | 'lead_transferido' | 'lead_reativado' | 'lead_perdido' | 'interacao';
+    tipo: 'status_alterado' | 'lead_criado' | 'lead_distribuido' | 'lead_visualizado' | 'lead_reatribuido' | 'lead_transferido' | 'lead_reativado' | 'lead_perdido' | 'interacao';
     descricao: string;
     autor?: string;
     de?: string;
@@ -148,6 +149,7 @@ export interface Lead {
     telefone: string;
     email?: string;
     empreendimentoId: string;
+    empreendimentoNome?: string;
     imobiliariaId: string;
     corretorId: string;
     status: LeadStatus;
@@ -156,7 +158,9 @@ export interface Lead {
     motivoPerdido?: string;
     criadoEm: string;
     firstResponseAt?: string;
+    visualizadoEm?: string;
     dataVisita?: string; // ISO string for scheduled visit
+    visitaRealizadaEm?: string;
     historico: HistoricoEntry[];
     publicToken?: string;
     origem?: {
@@ -365,6 +369,9 @@ export const avisosGlobais: Aviso[] = [
 ];
 
 export const corretores: Corretor[] = [
+    // House da Gestora de Lançamentos
+    { id: 'house-cor-1', nome: 'Gabriel Martins', imobiliariaId: null, ativo: true, tempoOnline: 40, pontos: 760, telefone: '(11) 99000-1001', email: 'gabriel@house.com', empreendimentoIds: ['emp-1', 'emp-2'] },
+    { id: 'house-cor-2', nome: 'Beatriz Costa', imobiliariaId: null, ativo: true, tempoOnline: 32, pontos: 680, telefone: '(11) 99000-1002', email: 'beatriz@house.com', empreendimentoIds: ['emp-1', 'emp-3'] },
     { id: 'cor-1', nome: 'João Mendes', imobiliariaId: 'imob-1', ativo: true, tempoOnline: 42, pontos: 850, telefone: '(11) 99123-4567', email: 'joao@prime.com', empreendimentoIds: ['emp-1', 'emp-2'], avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
     { id: 'cor-2', nome: 'Maria Souza', imobiliariaId: 'imob-1', ativo: true, tempoOnline: 35, pontos: 620, telefone: '(11) 98765-1234', email: 'maria@prime.com', empreendimentoIds: ['emp-1', 'emp-3'], avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
     { id: 'cor-3', nome: 'Carlos Lima', imobiliariaId: 'imob-1', ativo: false, tempoOnline: 0, pontos: 120, telefone: '(11) 97654-9876', email: 'carlos@prime.com', empreendimentoIds: [] },
@@ -439,7 +446,7 @@ function daysAgo(d: number) { return new Date(now.getTime() - d * 86400000).toIS
 function hoursAgo(h: number) { return new Date(now.getTime() - h * 3600000).toISOString(); }
 function minutesAgo(m: number) { return new Date(now.getTime() - m * 60000).toISOString(); }
 
-export const leads: Lead[] = [
+const baseLeads: Lead[] = [
     // Recent — novos (sem first_response)
     { id: 'lead-1', nome: 'Fernanda Alves', telefone: '(11) 99876-5432', email: 'fernanda@email.com', empreendimentoId: 'emp-1', imobiliariaId: 'imob-1', corretorId: 'cor-1', status: 'novo', criadoEm: minutesAgo(3), historico: makeHistory('lead-1', 'novo', minutesAgo(3), 'João Mendes', 'Imobiliária Prime'), publicToken: 'H7k2La', origem: { canal: 'Facebook Ads', campanha: 'Lançamento Fase 1' } },
     { id: 'lead-2', nome: 'Ricardo Barros', telefone: '(11) 98765-4321', empreendimentoId: 'emp-2', imobiliariaId: 'imob-2', corretorId: 'cor-4', status: 'novo', criadoEm: minutesAgo(8), historico: makeHistory('lead-2', 'novo', minutesAgo(8), 'Ana Oliveira', 'Rede Lares'), publicToken: 'x9P2mQ', origem: { canal: 'Portal Imobiliário', campanha: 'ZAP Imóveis' } },
@@ -474,6 +481,21 @@ export const leads: Lead[] = [
     { id: 'lead-19', nome: 'Renata Gomes', telefone: '(11) 84109-8765', empreendimentoId: 'emp-1', imobiliariaId: 'imob-3', corretorId: 'cor-8', status: 'contatado', criadoEm: hoursAgo(8), firstResponseAt: hoursAgo(7.5), historico: makeHistory('lead-19', 'contatado', hoursAgo(8), 'Beatriz Almeida', 'Casa & Cia', hoursAgo(7.5)) },
     { id: 'lead-20', nome: 'Lucas Teixeira', telefone: '(19) 83098-7654', empreendimentoId: 'emp-3', imobiliariaId: 'imob-1', corretorId: 'cor-2', status: 'novo', criadoEm: minutesAgo(45), historico: makeHistory('lead-20', 'novo', minutesAgo(45), 'Maria Souza', 'Imobiliária Prime') },
 ];
+
+// Carteira intencionalmente volumosa para validar a experiência do corretor
+// com uma operação real: 100 leads atribuídos a ele.
+const simulatedNames = ['Amanda Freire', 'André Carvalho', 'Beatriz Nogueira', 'Caio Azevedo', 'Carolina Moura', 'Cecília Ramos', 'Cláudio Moreira', 'Diego Pacheco', 'Elisa Martins', 'Fábio Andrade', 'Gabriela Lopes', 'Guilherme Farias', 'Helena Duarte', 'Henrique Barros', 'Igor Tavares', 'Jéssica Paes', 'Joana Ribeiro', 'José Ricardo', 'Karen Mota', 'Leonardo Freitas', 'Letícia Nunes', 'Luana Cardoso', 'Marcelo Prado', 'Mariana Castro', 'Mateus Peixoto', 'Natália Rezende', 'Otávio Siqueira', 'Paula Monteiro', 'Rafaela Furtado', 'Raul Meireles', 'Renan Vieira', 'Sabrina Coelho', 'Samuel Araujo', 'Sofia Mendes', 'Tatiana Lima', 'Vinícius Rocha'];
+const simulatedStatuses: LeadStatus[] = ['novo', 'novo', 'novo', 'novo', 'novo', 'novo', 'novo', 'novo', 'novo', 'novo', 'em_atendimento', 'em_atendimento', 'em_atendimento', 'em_atendimento', 'em_atendimento', 'em_atendimento', 'contatado', 'contatado', 'contatado', 'contatado', 'contatado', 'contatado', 'contatado', 'contatado', 'contatado', 'visita_marcada', 'visita_marcada', 'visita_marcada', 'visita_marcada', 'visita_marcada', 'visita_marcada', 'visita_marcada', 'proposta', 'proposta', 'proposta', 'proposta', 'proposta', 'venda', 'venda', 'venda', 'perdido', 'perdido'];
+const simulatedCarteiraLeads: Lead[] = Array.from({ length: 96 }, (_, index) => {
+    const position = index + 1;
+    const status = simulatedStatuses[index % simulatedStatuses.length];
+    const criadoEm = status === 'novo' ? minutesAgo(30 + position * 18) : daysAgo(1 + (position % 42));
+    const firstResponseAt = status === 'novo' ? undefined : new Date(new Date(criadoEm).getTime() + (5 + (position % 16)) * 60000).toISOString();
+    const nome = simulatedNames[index % simulatedNames.length];
+    const id = `lead-carteira-${String(position).padStart(3, '0')}`;
+    return { id, nome, telefone: `(11) 9${String(81000000 + position * 733).slice(-8, -4)}-${String(81000000 + position * 733).slice(-4)}`, email: `${nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '.')}@email.com`, empreendimentoId: ['emp-1', 'emp-2', 'emp-3', 'emp-4'][index % 4], imobiliariaId: 'imob-1', corretorId: 'cor-1', status, criadoEm, firstResponseAt, dataVisita: status === 'visita_marcada' ? new Date(Date.now() + (position % 12 + 1) * 86400000).toISOString() : undefined, motivoPerdido: status === 'perdido' ? 'Sem retorno após as tentativas de contato' : undefined, historico: makeHistory(id, status, criadoEm, 'João Mendes', 'Imobiliária Prime', firstResponseAt), origem: { canal: ['Facebook Ads', 'Google Ads', 'Instagram', 'WhatsApp'][index % 4], campanha: ['Lançamento Fase 1', 'Always on', 'Retargeting'][index % 3] } };
+});
+export const leads: Lead[] = [...baseLeads, ...simulatedCarteiraLeads];
 
 // ============================
 // HELPERS

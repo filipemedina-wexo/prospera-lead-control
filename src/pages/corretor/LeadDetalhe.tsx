@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Phone, MapPin, MessageSquarePlus, Send, Ban, Clock, Zap, ArrowRight, Calendar, CheckCircle2, XCircle, Share2, PhoneMissed, PhoneOff, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Phone, MapPin, MessageSquarePlus, Send, Ban, Clock, Zap, ArrowRight, Calendar, CheckCircle2, XCircle, Share2, PhoneMissed, PhoneOff, AlertTriangle, Eye } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
@@ -8,11 +8,11 @@ import { TagTextarea, detectCompoundTags, detectSimpleTags, sentimentoConfig, ty
 import { StatusPipeline } from '../../components/ui/StatusPipeline';
 import { useApp } from '../../context/AppContext';
 import {
-    leads,
     getEmpreendimento,
     statusLabels,
     type LeadStatus,
 } from '../../data/mockData';
+import { atualizarLead, confirmarVisitaRealizada, marcarLeadComoLido, registrarTentativaContato, useLead } from '../../lib/leadRepository';
 import { triggerReward } from '../../utils/confetti';
 
 interface Nota {
@@ -45,6 +45,7 @@ function formatElapsed(ms: number): string {
 
 export function LeadDetalhe() {
     const { selectedLeadId, setCurrentPage } = useApp();
+    const { item: loadedLead, setItem: setLoadedLead, loading: leadLoading } = useLead(selectedLeadId);
     const [showLostModal, setShowLostModal] = useState(false);
     const [motivoPerdido, setMotivoPerdido] = useState('');
     const [notaTexto, setNotaTexto] = useState('');
@@ -54,7 +55,7 @@ export function LeadDetalhe() {
     const [dataVisita, setDataVisita] = useState('');
     const [horaVisita, setHoraVisita] = useState('');
     const [linkCopied, setLinkCopied] = useState(false);
-    const [notas, setNotas] = useState<Nota[]>([
+    const [notas, setNotas] = useState<Nota[]>(() => import.meta.env.VITE_APP_MODE === 'mock' ? [
         {
             id: 'nota-1',
             texto: 'Primeiro contato feito por ligação. Lead interessado no 2 quartos, perguntou sobre financiamento. Achou a entrada cara.',
@@ -64,8 +65,9 @@ export function LeadDetalhe() {
             statusDe: 'novo',
             statusPara: 'contatado',
         },
-    ]);
+    ] : []);
     const [tentativasContato, setTentativasContato] = useState(0);
+    const [savingAttempt, setSavingAttempt] = useState(false);
     const [autoCloseWarning, setAutoCloseWarning] = useState(false);
 
     // Live SLA timer
@@ -77,6 +79,8 @@ export function LeadDetalhe() {
 
     const salvarNota = () => {
         if (!notaTexto.trim()) return;
+        const statusToPersist = pendingStatus;
+        const noteToPersist = notaTexto;
         const nova: Nota = {
             id: `nota-${Date.now()}`,
             texto: notaTexto,
@@ -93,10 +97,9 @@ export function LeadDetalhe() {
 
             if (pendingStatus === 'visita_marcada' && dataVisita && horaVisita) {
                 // Mutate mock data for demo
-                lead!.dataVisita = `${dataVisita}T${horaVisita}:00`;
-                lead!.status = pendingStatus; // Force status update
+                setLoadedLead((current) => current ? { ...current, dataVisita: `${dataVisita}T${horaVisita}:00`, status: pendingStatus } : current);
             } else {
-                lead!.status = pendingStatus;
+                setLoadedLead((current) => current ? { ...current, status: pendingStatus } : current);
             }
         } else {
             setXpReward(10);
@@ -107,6 +110,10 @@ export function LeadDetalhe() {
         setPendingStatus(null);
         setDataVisita('');
         setHoraVisita('');
+        if (lead) {
+            const visitAt = statusToPersist === 'visita_marcada' && dataVisita && horaVisita ? `${dataVisita}T${horaVisita}:00` : undefined;
+            void atualizarLead(lead.id, statusToPersist || lead.status, noteToPersist, visitAt).catch(() => undefined);
+        }
     };
 
     const handleConfirmVisit = () => {
@@ -129,10 +136,9 @@ export function LeadDetalhe() {
         setNotas([nova, ...notas]);
         setVisitFeedback('');
 
-        if (lead) {
-            // Mock update to hide the card
-            lead.dataVisita = undefined;
-        }
+        if (lead) void confirmarVisitaRealizada(lead.id, feedback)
+            .then((confirmedAt) => setLoadedLead((current) => current ? { ...current, visitaRealizadaEm: confirmedAt } : current))
+            .catch(() => undefined);
     };
 
     const handleStatusClick = (status: LeadStatus) => {
@@ -143,7 +149,8 @@ export function LeadDetalhe() {
             setTimeout(() => setXpReward(null), 2000);
 
             // Update lead status directly (mock)
-            lead!.status = status;
+            setLoadedLead((current) => current ? { ...current, status } : current);
+            void atualizarLead(lead!.id, status, 'Atendimento iniciado').catch(() => undefined);
 
             // Add auto system note
             const nova: Nota = {
@@ -167,9 +174,19 @@ export function LeadDetalhe() {
         }, 100);
     };
 
-    const handleNoAnswer = () => {
-        const novasTentativas = tentativasContato + 1;
-        setTentativasContato(novasTentativas);
+    const handleNoAnswer = async () => {
+        if (!lead || savingAttempt) return;
+        setSavingAttempt(true);
+        let novasTentativas = tentativasContato;
+        try {
+            novasTentativas = await registrarTentativaContato(lead.id);
+            setTentativasContato(novasTentativas);
+            setLoadedLead((current) => current ? { ...current, tentativasContato: novasTentativas, ultimaTentativa: new Date().toISOString() } : current);
+        } catch {
+            return;
+        } finally {
+            setSavingAttempt(false);
+        }
 
         // Add auto system note
         const nova: Nota = {
@@ -196,19 +213,22 @@ export function LeadDetalhe() {
         setPendingStatus(null);
     };
 
-    const lead = leads.find(l => l.id === selectedLeadId);
+    const lead = loadedLead;
 
-    // Simulate Auto-Close check on mount
+    // Abrir o detalhe confirma somente a leitura: não altera etapa nem conta como contato.
     useEffect(() => {
-        if (lead?.status === 'em_atendimento') {
-            // Mock logic: randomly decide if this lead is "stale" for demo purposes
-            // In real app, check (now - lead.lastUpdate > 48h)
-            const isStale = Math.random() > 0.8; // 20% chance of being stale for demo
-            if (isStale) {
-                setAutoCloseWarning(true);
-            }
-        }
+        if (!lead || lead.visualizadoEm) return;
+        void marcarLeadComoLido(lead.id).then(readAt => setLoadedLead(current => current ? { ...current, visualizadoEm: readAt } : current)).catch(() => undefined);
+    }, [lead, setLoadedLead]);
+
+    // Auto-close is deliberately disabled until it has a server-side inactivity policy.
+    useEffect(() => {
+        setAutoCloseWarning(false);
     }, [lead]);
+
+    if (leadLoading) {
+        return <div className="text-center py-20"><p className="text-text-muted">Carregando lead...</p></div>;
+    }
 
     if (!lead) {
         return (
@@ -350,6 +370,7 @@ export function LeadDetalhe() {
                         <h1 className="text-lg sm:text-xl font-bold leading-tight">{lead.nome}</h1>
                         <div className="flex flex-wrap items-center gap-2 mt-1">
                             <StatusBadge status={lead.status} />
+                            {lead.visualizadoEm && <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-violet-50 text-violet-700 border border-violet-100"><Eye size={12} /> Visto {new Date(lead.visualizadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}
                             <button
                                 onClick={() => {
                                     const url = `${window.location.protocol}//${window.location.host}/#/apresentacao/${lead.publicToken || 'demo'}`;
@@ -412,7 +433,7 @@ export function LeadDetalhe() {
 
                 {/* Visit Confirmation Card */}
                 {
-                    !isPerdido && lead.status === 'visita_marcada' && lead.dataVisita && new Date(lead.dataVisita) < new Date() && (
+                    !isPerdido && lead.status === 'visita_marcada' && lead.dataVisita && !lead.visitaRealizadaEm && new Date(lead.dataVisita) < new Date() && (
                         <div className="mb-6 bg-brand/5 border border-brand/20 rounded-xl p-5 animate-in slide-in-from-top-4">
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-brand text-white rounded-lg shadow-sm">
@@ -456,7 +477,15 @@ export function LeadDetalhe() {
                     !isPerdido && (
                         <div className="mb-2">
                             <div className="mb-6">
-                                <p className="text-xs text-text-muted font-medium uppercase tracking-wider mb-3">Fluxo de Atendimento</p>
+                                <div className="flex items-end justify-between gap-3 mb-3">
+                                    <div>
+                                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Fluxo de Atendimento</p>
+                                        <p className="text-sm text-text-secondary mt-1">Acompanhe o avanço deste lead em uma única visão.</p>
+                                    </div>
+                                    <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-brand bg-brand/5 border border-brand/10 rounded-full px-2.5 py-1 whitespace-nowrap">
+                                        Etapa atual: {statusLabels[lead.status]}
+                                    </span>
+                                </div>
                                 <StatusPipeline
                                     currentStatus={lead.status}
                                     statusList={statusFlow}
@@ -489,7 +518,7 @@ export function LeadDetalhe() {
                                     {lead.status === 'em_atendimento' && !autoCloseWarning && (
                                         <button
                                             onClick={handleNoAnswer}
-                                            disabled={tentativasContato >= 3}
+                                            disabled={tentativasContato >= 3 || savingAttempt}
                                             className={`w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-xl transition-all border ${tentativasContato >= 2
                                                 ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
                                                 : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'
@@ -540,6 +569,13 @@ export function LeadDetalhe() {
                                         <button
                                             disabled={!motivoPerdido.trim()}
                                             className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            onClick={() => {
+                                                if (!lead) return;
+                                                const reason = motivoPerdido.trim();
+                                                setLoadedLead({ ...lead, status: 'perdido', motivoPerdido: reason });
+                                                setShowLostModal(false);
+                                                void atualizarLead(lead.id, 'perdido', undefined, undefined, reason).catch(() => undefined);
+                                            }}
                                         >
                                             Confirmar Perda
                                         </button>

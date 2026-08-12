@@ -7,11 +7,13 @@ import {
     Zap,
     CircleDot,
     MessageCircle,
+    Eye,
 } from 'lucide-react';
 
 const iconMap: Record<HistoricoEntry['tipo'], React.ReactNode> = {
     lead_criado: <Zap size={14} />,
     lead_distribuido: <UserPlus size={14} />,
+    lead_visualizado: <Eye size={14} />,
     status_alterado: <CircleDot size={14} />,
     lead_reatribuido: <ArrowRightLeft size={14} />,
     lead_transferido: <ArrowRightLeft size={14} />,
@@ -23,6 +25,7 @@ const iconMap: Record<HistoricoEntry['tipo'], React.ReactNode> = {
 const colorMap: Record<HistoricoEntry['tipo'], string> = {
     lead_criado: 'bg-blue-50 text-blue-600',
     lead_distribuido: 'bg-green-50 text-green-600',
+    lead_visualizado: 'bg-violet-50 text-violet-600',
     status_alterado: 'bg-sky-50 text-sky-600',
     lead_reatribuido: 'bg-violet-50 text-violet-600',
     lead_transferido: 'bg-amber-50 text-amber-600',

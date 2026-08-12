@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { ChevronLeft, Trophy, Users, CalendarDays, Gift, TrendingUp, CheckCircle2, Ticket, BarChart3, Settings } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { listaCampanhas } from '../../data/mockData';

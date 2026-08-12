@@ -1,79 +1,48 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #C6A87C;
-  --color-brand-accent: #A38458;
-  --color-bg: #FAFAFA;
-  --color-bg-surface: #FFFFFF;
-  --color-border: #E5E7EB;
-  --color-text-primary: #111827;
-  --color-text-secondary: #4B5563;
-  --color-text-muted: #9CA3AF;
-
-  /* Semantic Status Colors */
-  --color-success: #166534;
-  --color-success-bg: #F0FDF4;
-  --color-alert: #991B1B;
-  --color-alert-bg: #FEF2F2;
-  --color-warning: #92400E;
-  --color-warning-bg: #FFFBEB;
-  --color-info: #1E293B;
-  --color-info-bg: #F8FAFC;
-
-  /* Premium Levels */
-  --color-lvl-bronze: #8B5A2B;
-  --color-lvl-silver: #94A3B8;
-  --color-lvl-gold: #C6A87C;
-  --color-lvl-black: #111827;
-
-  --font-sans: 'Montserrat', system-ui, sans-serif;
-
-  --radius-xl: 24px;
+  --color-brand: #7869c9;
+  --color-brand-accent: #5c4eaa;
+  --color-primary-soft: #eeeafd;
+  --color-border-strong: #d8c7b8;
+  --color-text-faint: #a19a94;
+  --color-sidebar: #242129;
+  --color-sidebar-surface: #40374d;
+  --color-bg: #f4f1eb;
+  --color-bg-surface: #fffdf9;
+  --color-border: #e8e0d6;
+  --color-text-primary: #28323b;
+  --color-text-secondary: #5f6c74;
+  --color-text-muted: #879197;
+  --color-success: #4c9b78;
+  --color-success-bg: #e2f2e9;
+  --color-alert: #bd5c50;
+  --color-alert-bg: #f9e7e3;
+  --color-warning: #bd7d43;
+  --color-warning-bg: #fff0df;
+  --color-info: #368f9d;
+  --color-info-bg: #e1f1f3;
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --radius-xl: 12px;
   --radius-md: 8px;
-
-  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px -2px rgba(0,0,0,0.08), 0 2px 6px -2px rgba(0,0,0,0.05);
-  --shadow-lg: 0 10px 40px -4px rgba(0,0,0,0.10), 0 4px 12px -4px rgba(0,0,0,0.06);
+  --shadow-sm: 0 1px 2px rgba(70, 57, 39, 0.04);
+  --shadow-md: 0 12px 32px rgba(70, 57, 39, 0.07);
 }
 
-/* Base styles */
-body {
-  background-color: var(--color-bg);
-  color: var(--color-text-primary);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+:root { font-family: 'Manrope', system-ui, sans-serif; color: #28323b; background: #f4f1eb; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #f4f1eb; color: #28323b; -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+::selection { background: #eeeafd; color: #5c4eaa; }
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: #f4f1eb; }
+::-webkit-scrollbar-thumb { background: #d8c7b8; border-radius: 999px; }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-bg);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
-}
-
-/* Utility: Glassmorphism */
-.glass {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  background: rgba(255, 255, 255, 0.85);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-/* Utility: Glow text */
-.glow-text {
-  text-shadow: 0 0 20px rgba(198, 168, 124, 0.4);
-}
+.mono { font-family: 'DM Mono', monospace; }
+.soft-panel { background: #fffdf9; border: 1px solid #e8e0d6; border-radius: 12px; box-shadow: 0 1px 2px rgba(70, 57, 39, 0.03); }
+.attention-card { background: #fffdf9; border: 1px solid #e8e0d6; border-radius: 12px; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.attention-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(70, 57, 39, .07); border-color: #d8c7b8; }
+.focus-ring:focus-visible { outline: 3px solid rgba(120, 105, 201, .28); outline-offset: 2px; }
+.cockpit-shell > section:last-child { align-items: start; }

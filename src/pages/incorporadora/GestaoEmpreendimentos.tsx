@@ -1,116 +1,28 @@
-import { useState } from 'react';
-import { Plus, Search, Building2, MapPin, MoreVertical, Edit2, BarChart2 } from 'lucide-react';
+import { Building2, Check, MapPin, Network, Plus, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { empreendimentos } from '../../data/mockData';
-import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabase';
+
+type Empreendimento = { id: string; nome: string; cidade: string | null; status_obra: 'lancamento' | 'em_obras' | 'pronto' | null; criado_em: string };
+type Gestora = { id: string; nome: string };
+type Imobiliaria = { id: string; nome: string; ativo: boolean };
+type Rede = { empreendimento_id: string; gestora_id: string | null; gestoras: Gestora[]; imobiliarias: Imobiliaria[]; parceiras_ativas: string[] };
+const statusLabel = { lancamento: 'Lançamento', em_obras: 'Em obras', pronto: 'Pronto' };
+
+function RedeComercialModal({ empreendimento, onClose }: { empreendimento: Empreendimento; onClose: () => void }) {
+  const [rede, setRede] = useState<Rede | null>(null); const [gestoraId, setGestoraId] = useState(''); const [imobiliarias, setImobiliarias] = useState<string[]>([]); const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null);
+  useEffect(() => { void supabase.rpc('listar_rede_comercial_empreendimento', { p_empreendimento_id: empreendimento.id }).then(({ data, error: loadError }) => { if (loadError) setError(loadError.message); else { const next = data as Rede; setRede(next); setGestoraId(next.gestora_id || ''); setImobiliarias(next.parceiras_ativas || []); } }); }, [empreendimento.id]);
+  const toggle = (id: string) => setImobiliarias(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
+  async function save() { setSaving(true); setError(null); const { error: saveError } = await supabase.rpc('salvar_rede_comercial_empreendimento', { p_empreendimento_id: empreendimento.id, p_gestora_id: gestoraId || null, p_imobiliarias: imobiliarias }); if (saveError) { setError(saveError.message); setSaving(false); return; } onClose(); }
+  return <div className="fixed inset-0 z-[70] bg-black/50 p-4 flex items-center justify-center"><Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-0"><div className="p-6 border-b border-border flex items-start justify-between"><div><p className="text-xs mono uppercase tracking-wider text-brand">Rede comercial</p><h2 className="text-xl font-bold mt-1">{empreendimento.nome}</h2><p className="text-sm text-text-secondary mt-1">A incorporadora mantém a captação; você define quem pode operar este produto.</p></div><button onClick={onClose} className="p-2 rounded-lg hover:bg-black/5 text-text-muted"><X size={20} /></button></div><div className="p-6 space-y-6">{error && <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>}{!rede ? <p className="text-sm text-text-muted py-8 text-center">Carregando parceiros disponíveis…</p> : <><section><label className="text-sm font-semibold">Gestora de lançamentos responsável</label><p className="text-xs text-text-muted mt-1 mb-3">A Gestora visualiza o empreendimento, mantém a House e configura a distribuição.</p><select className="input w-full" value={gestoraId} onChange={event => setGestoraId(event.target.value)}><option value="">Sem gestora definida por enquanto</option>{rede.gestoras.map(gestora => <option key={gestora.id} value={gestora.id}>{gestora.nome}</option>)}</select></section><section><div className="flex items-center justify-between"><div><h3 className="text-sm font-semibold">Imobiliárias autorizadas</h3><p className="text-xs text-text-muted mt-1">Somente elas poderão receber este empreendimento na própria operação.</p></div><span className="text-xs text-brand font-semibold">{imobiliarias.length} selecionada(s)</span></div><div className="mt-3 divide-y divide-border border border-border rounded-xl overflow-hidden">{rede.imobiliarias.map(imobiliaria => <button type="button" key={imobiliaria.id} disabled={!imobiliaria.ativo} onClick={() => toggle(imobiliaria.id)} className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-black/[0.02] disabled:opacity-50"><span className={`w-5 h-5 rounded border flex items-center justify-center ${imobiliarias.includes(imobiliaria.id) ? 'bg-brand border-brand text-white' : 'border-border'}`}>{imobiliarias.includes(imobiliaria.id) && <Check size={14} />}</span><span className="flex-1 text-sm font-medium">{imobiliaria.nome}</span><span className="text-[10px] text-text-muted">{imobiliaria.ativo ? 'Ativa' : 'Inativa'}</span></button>)}{rede.imobiliarias.length === 0 && <p className="p-5 text-sm text-text-muted">Nenhuma imobiliária vinculada a esta incorporadora ainda.</p>}</div></section></>}</div><div className="p-5 border-t border-border flex justify-end gap-3"><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button disabled={!rede || saving} onClick={() => void save()}>{saving ? 'Salvando…' : 'Salvar rede comercial'}</Button></div></Card></div>;
+}
 
 export function GestaoEmpreendimentos() {
-    const { setCurrentPage } = useApp();
-    const [searchTerm, setSearchTerm] = useState('');
-
-    const filtered = empreendimentos.filter(emp => 
-        emp.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        emp.cidade.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Empreendimentos</h1>
-                    <p className="text-text-secondary mt-1">Gestão de produtos, tabelas e material de vendas.</p>
-                </div>
-                <Button className="shrink-0 gap-2" onClick={() => setCurrentPage('novo-empreendimento')}>
-                    <Plus size={18} />
-                    Novo Empreendimento
-                </Button>
-            </div>
-
-            <Card className="p-4">
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Buscar por nome ou cidade..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-bg border border-border rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand transition-colors"
-                        />
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="border-b border-border">
-                                <th className="pb-3 px-4 font-semibold text-sm text-text-secondary">Nome do Empreendimento</th>
-                                <th className="pb-3 px-4 font-semibold text-sm text-text-secondary">Localização</th>
-                                <th className="pb-3 px-4 font-semibold text-sm text-text-secondary">Status da Obra</th>
-                                <th className="pb-3 px-4 font-semibold text-sm text-text-secondary">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map((emp) => (
-                                <tr key={emp.id} className="border-b border-border/50 hover:bg-black/[0.02] transition-colors group">
-                                    <td className="py-4 px-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
-                                                {emp.imagens && emp.imagens.length > 0 ? (
-                                                    <img src={emp.imagens[0]} className="w-full h-full object-cover rounded-lg" alt={emp.nome} />
-                                                ) : (
-                                                    <Building2 className="text-brand" size={20} />
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-sm">{emp.nome}</p>
-                                                <p className="text-xs text-text-muted mt-0.5">{emp.formIds.length} forms conectados</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-4 px-4">
-                                        <div className="flex items-center gap-1.5 text-sm text-text-secondary">
-                                            <MapPin size={14} className="text-text-muted" />
-                                            {emp.cidade}
-                                        </div>
-                                    </td>
-                                    <td className="py-4 px-4">
-                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                                            emp.statusObra === 'lancamento' ? 'bg-brand/10 text-brand border-brand/20' :
-                                            emp.statusObra === 'em_obras' ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                                            'bg-emerald-100 text-emerald-700 border-emerald-200'
-                                        }`}>
-                                            {emp.statusObra === 'lancamento' ? 'Lançamento' :
-                                             emp.statusObra === 'em_obras' ? 'Em Obras' : 'Pronto'}
-                                        </span>
-                                    </td>
-                                    <td className="py-4 px-4">
-                                        <div className="flex items-center gap-2">
-                                            <Button variant="ghost" className="p-2 h-auto text-text-muted hover:text-brand" onClick={() => setCurrentPage('novo-empreendimento')}>
-                                                <Edit2 size={16} />
-                                            </Button>
-                                            <Button variant="ghost" className="p-2 h-auto text-text-muted hover:text-brand">
-                                                <BarChart2 size={16} />
-                                            </Button>
-                                            <Button variant="ghost" className="p-2 h-auto text-text-muted hover:text-text-primary">
-                                                <MoreVertical size={16} />
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    
-                    {filtered.length === 0 && (
-                        <div className="text-center py-12">
-                            <Building2 className="mx-auto h-12 w-12 text-text-muted opacity-20 mb-4" />
-                            <h3 className="text-lg font-medium text-text-secondary">Nenhum empreendimento.</h3>
-                        </div>
-                    )}
-                </div>
-            </Card>
-        </div>
-    );
+  const [items, setItems] = useState<Empreendimento[]>([]); const [search, setSearch] = useState(''); const [nome, setNome] = useState(''); const [cidade, setCidade] = useState(''); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState<string | null>(null); const [redeEmpreendimento, setRedeEmpreendimento] = useState<Empreendimento | null>(null);
+  const load = async () => { setLoading(true); const { data, error: queryError } = await supabase.from('empreendimentos').select('id, nome, cidade, status_obra, criado_em').order('criado_em', { ascending: false }); if (queryError) setError(queryError.message); else setItems((data || []) as Empreendimento[]); setLoading(false); };
+  useEffect(() => { void load(); }, []);
+  const visible = useMemo(() => items.filter(item => `${item.nome} ${item.cidade || ''}`.toLowerCase().includes(search.trim().toLowerCase())), [items, search]);
+  const submit = async (event: React.FormEvent) => { event.preventDefault(); setError(null); setSaving(true); const { error: rpcError } = await supabase.rpc('criar_empreendimento_operacional', { p_nome: nome, p_cidade: cidade || null }); if (rpcError) setError(rpcError.message); else { setNome(''); setCidade(''); await load(); } setSaving(false); };
+  return <div className="cockpit-shell max-w-[1120px] mx-auto px-4 py-6 md:px-8 md:py-8 space-y-6"><section><p className="mono text-[10px] uppercase tracking-[.2em] text-[#7869c9] mb-2">Produtos</p><h1 className="text-[28px] font-extrabold tracking-[-.04em]">Empreendimentos</h1><p className="text-sm text-text-secondary mt-2">Cadastre os produtos e libere a rede comercial que pode operar cada um.</p></section><Card className="p-5"><div className="flex items-center gap-2 mb-4"><Plus size={18} className="text-[#7869c9]" /><h2 className="font-bold">Novo empreendimento</h2></div><form onSubmit={submit} className="flex flex-col sm:flex-row gap-3"><input required value={nome} onChange={event => setNome(event.target.value)} placeholder="Nome do empreendimento" className="h-10 flex-1 px-3 rounded-lg border border-border bg-bg text-sm" /><input value={cidade} onChange={event => setCidade(event.target.value)} placeholder="Cidade (opcional)" className="h-10 sm:w-56 px-3 rounded-lg border border-border bg-bg text-sm" /><button disabled={saving} className="h-10 px-4 rounded-lg bg-[#7869c9] text-white text-xs font-bold disabled:opacity-50">Cadastrar</button></form>{error && <p className="mt-3 text-sm text-red-600">{error}</p>}</Card><Card className="p-0 overflow-hidden"><div className="p-4 border-b border-border"><div className="relative max-w-sm"><Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar empreendimento" className="w-full h-10 pl-9 pr-3 rounded-lg border border-border bg-bg text-sm" /></div></div>{loading ? <p className="p-6 text-sm text-text-secondary">Carregando...</p> : visible.length === 0 ? <div className="p-12 text-center"><Building2 className="mx-auto text-text-muted opacity-30" size={40} /><p className="mt-3 font-semibold">Nenhum empreendimento cadastrado.</p></div> : <div className="divide-y divide-border">{visible.map(item => <div key={item.id} className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center"><div className="w-10 h-10 rounded-lg bg-brand/10 text-brand flex items-center justify-center"><Building2 size={20} /></div><div className="min-w-0 flex-1"><p className="text-sm font-semibold">{item.nome}</p><p className="text-xs text-text-secondary flex items-center gap-1 mt-0.5">{item.cidade ? <><MapPin size={12} />{item.cidade}</> : 'Cidade não informada'}</p></div><span className="text-xs font-medium px-2 py-1 rounded-md bg-brand/10 text-brand">{item.status_obra ? statusLabel[item.status_obra] : 'Sem status'}</span><Button variant="secondary" className="gap-2 text-xs" onClick={() => setRedeEmpreendimento(item)}><Network size={15} />Rede comercial</Button></div>)}</div>}</Card>{redeEmpreendimento && <RedeComercialModal empreendimento={redeEmpreendimento} onClose={() => setRedeEmpreendimento(null)} />}</div>;
 }

@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 
 export function CampanhasIncorporadora() {
     const { setCurrentPage, setSelectedCampanhaId } = useApp();
-    const [campanhas, setCampanhas] = useState<Campanha[]>([
+    const [campanhas] = useState<Campanha[]>([
         ...listaCampanhas,
         {
             id: 'camp-3',

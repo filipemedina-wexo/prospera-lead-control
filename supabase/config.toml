@@ -1,0 +1,5 @@
+[functions.lead-ingest]
+verify_jwt = false
+
+[functions.operation-invite]
+verify_jwt = false

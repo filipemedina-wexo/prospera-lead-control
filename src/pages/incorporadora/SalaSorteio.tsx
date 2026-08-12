@@ -6,7 +6,6 @@ export function SalaSorteio() {
     const { setCurrentPage } = useApp();
     const [soundOn, setSoundOn] = useState(true);
     const [status, setStatus] = useState<'espera' | 'sorteando' | 'resultado'>('espera');
-    const [countdown, setCountdown] = useState(5);
     const [winner, setWinner] = useState<{nome: string, imob: string, ticket: string} | null>(null);
     const [ticketDigit, setTicketDigit] = useState('');
 
@@ -32,7 +31,7 @@ export function SalaSorteio() {
     };
 
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: ReturnType<typeof setInterval>;
         if (status === 'sorteando') {
             // Roleta visual
             interval = setInterval(() => {
@@ -50,15 +49,6 @@ export function SalaSorteio() {
         }
         return () => clearInterval(interval);
     }, [status]);
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (status === 'espera' && countdown > 0) {
-            // Just for visual effect in this prototype: countdown loop or manual trigger
-            // We'll leave it manual with the "Iniciar" button for better UX demonstration
-        }
-        return () => clearInterval(interval);
-    }, [status, countdown]);
 
     const handleStart = () => {
         setStatus('sorteando');

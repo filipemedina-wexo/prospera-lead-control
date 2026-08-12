@@ -21,7 +21,7 @@ export function ConfiguracoesCorretor() {
     const [creci, setCreci] = useState('12345-F');
 
     // Metas
-    const [slaMax, setSlaMax] = useState(10);
+    const [slaMax] = useState(10);
     const [metaVisitas, setMetaVisitas] = useState(8);
     const [metaConversao, setMetaConversao] = useState(15);
 

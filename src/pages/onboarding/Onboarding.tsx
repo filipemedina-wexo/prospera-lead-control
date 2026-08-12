@@ -9,7 +9,6 @@ import {
     Target, Settings, Award, 
     Image as ImageIcon
 } from 'lucide-react';
-import { cn } from '../../lib/utils';
 
 export function Onboarding() {
     const { profile, setCurrentPage } = useApp();
@@ -55,7 +54,6 @@ export function Onboarding() {
 
     // --- Onboarding INCORPORADORA ---
     if (profile === 'incorporadora') {
-        const totalSteps = 4;
         return (
             <div className="max-w-2xl mx-auto py-8">
                 {step === 1 && (

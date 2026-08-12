@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { PlayCircle, Award, CheckCircle2, Lock } from 'lucide-react';
+import { PlayCircle, Award, Lock } from 'lucide-react';
 import { useTour } from '../../context/TourContext';
 
 const COURSES = [

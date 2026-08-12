@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, MapPin, Building2, TrendingUp, Info } from 'lucide-react';
+import { Search, MapPin, Building2, TrendingUp } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { Button } from '../../components/ui/Button';
 import { empreendimentos } from '../../data/mockData';

@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -6,11 +5,6 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
-} from '@dnd-kit/core';
-import type {
-    DragStartEvent,
-    DragOverEvent,
-    DragEndEvent
 } from '@dnd-kit/core';
 import {
     sortableKeyboardCoordinates,
@@ -27,7 +21,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ leads: externalLeads, onCardClick }: KanbanBoardProps = {}) {
-    const [leads] = useState<Lead[]>(externalLeads ?? initialLeads);
+    const leads = externalLeads ?? initialLeads;
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -36,18 +30,12 @@ export function KanbanBoard({ leads: externalLeads, onCardClick }: KanbanBoardPr
         })
     );
 
-    const handleDragStart = (_event: DragStartEvent) => { return; };
-    const handleDragOver = (_event: DragOverEvent) => { return; };
-    const handleDragEnd = (_event: DragEndEvent) => { return; };
 
     return (
         <div className="flex h-full overflow-x-auto gap-4 p-4">
             <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEnd}
             >
                 {COLUMNS.map(status => (
                     <KanbanColumn

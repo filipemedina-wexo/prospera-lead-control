@@ -1,209 +1,62 @@
-import { useState } from 'react';
-import { Target, Zap, Calendar, TrendingUp, Clock, Star, AlertCircle } from 'lucide-react';
-import { Card } from '../../components/ui/Card';
-import { SmartSuggestions } from '../../components/ui/SmartSuggestions';
-import { CampaignWidget } from '../../components/ui/CampaignWidget';
-import { PriorityLeadList } from '../../components/ui/PriorityLeadList';
-import {
-    leads,
-    corretores,
-    getSlaMinutes,
-    isSlaEstourado,
-    smartSuggestions,
-    performanceMetas,
-} from '../../data/mockData';
+import { AlertCircle, ArrowRight, ArrowUpRight, Calendar, Clock3, Target, TrendingUp, UsersRound } from 'lucide-react';
+import { useMemo } from 'react';
+import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { type Lead, type LeadStatus, statusLabels } from '../../data/mockData';
+import { useBrokerLeads } from '../../lib/leadRepository';
 
-const CORRETOR_ID = 'cor-1';
+const SLA_MINUTES = 10;
 
-// Campanha mockada local para o dashboard
-const campanhaMock = {
-    id: 'camp-1',
-    titulo: 'Sprint de Vendas — Fevereiro',
-    descricao: 'Alcance 400 pts este mês e ganhe um bônus de R$500 + troféu digital',
-    metaPontos: 400,
-    premio: 'Bônus R$500',
-    dataInicio: new Date(Date.now() - 86400000 * 10).toISOString(),
-    dataFim: new Date(Date.now() + 86400000 * 7).toISOString(),
-    ativa: true,
-    empreendimentoId: 'emp-1',
-};
+function responseMinutes(lead: Lead) {
+  if (!lead.firstResponseAt) return null;
+  return Math.max(0, Math.round((new Date(lead.firstResponseAt).getTime() - new Date(lead.criadoEm).getTime()) / 60_000));
+}
+
+function waitingMinutes(lead: Lead) {
+  return Math.max(0, Math.floor((Date.now() - new Date(lead.criadoEm).getTime()) / 60_000));
+}
 
 export function DashboardCorretor() {
-    const corretor = corretores.find(c => c.id === CORRETOR_ID);
-    const meusLeads = leads.filter(l => l.corretorId === CORRETOR_ID);
-    const [today] = useState(new Date());
+  const { setCurrentPage, setSelectedLeadId } = useApp();
+  const { profile } = useAuth();
+  const { items: mine, loading, error } = useBrokerLeads(profile?.corretor_id);
+  const metrics = useMemo(() => {
+    const active = mine.filter(lead => !['venda', 'perdido'].includes(lead.status)).length;
+    const sales = mine.filter(lead => lead.status === 'venda').length;
+    const visits = mine.filter(lead => lead.status === 'visita_marcada').length;
+    const responded = mine.filter(lead => Boolean(lead.firstResponseAt));
+    const values = responded.map(responseMinutes).filter((value): value is number => value !== null);
+    const avgSla = values.length ? Math.round(values.reduce((total, value) => total + value, 0) / values.length) : 0;
+    const pending = mine.filter(lead => lead.status === 'novo' && !lead.firstResponseAt);
+    const breached = pending.filter(lead => waitingMinutes(lead) > SLA_MINUTES);
+    return { active, sales, visits, responded: responded.length, avgSla, pending, breached };
+  }, [mine]);
+  const priorityLeads = useMemo(() => [...metrics.pending, ...mine.filter(lead => ['visita_marcada', 'proposta'].includes(lead.status))]
+    .filter((lead, index, collection) => collection.findIndex(item => item.id === lead.id) === index)
+    .sort((a, b) => new Date(a.criadoEm).getTime() - new Date(b.criadoEm).getTime())
+    .slice(0, 5), [metrics.pending, mine]);
+  const openLead = (leadId: string) => { setSelectedLeadId(leadId); setCurrentPage('lead-detalhe'); };
+  const initials = (profile?.nome || profile?.email || 'C').split(/[ @]/).filter(Boolean).map(part => part[0]).slice(0, 2).join('').toUpperCase();
+  const metricsCards = [
+    { label: 'Leads ativos', value: metrics.active, helper: 'na sua carteira', icon: UsersRound, tone: 'text-info' },
+    { label: 'SLA médio', value: metrics.responded ? `${metrics.avgSla}m` : '—', helper: metrics.breached.length ? 'revisar agora' : 'dentro do limite', icon: Clock3, tone: metrics.breached.length ? 'text-alert' : 'text-success' },
+    { label: 'Visitas marcadas', value: metrics.visits, helper: 'na carteira', icon: Calendar, tone: 'text-warning' },
+    { label: 'Vendas', value: metrics.sales, helper: 'registradas', icon: TrendingUp, tone: 'text-success' },
+    { label: 'Conversão', value: `${mine.length ? Math.round((metrics.sales / mine.length) * 100) : 0}%`, helper: `${mine.length} leads distribuídos`, icon: ArrowUpRight, tone: 'text-[#7869c9]' },
+  ];
 
-    // KPIs pessoais
-    const leadsAtivos = meusLeads.filter(l => !['venda', 'perdido'].includes(l.status)).length;
-    const slaValues = meusLeads.map(getSlaMinutes).filter((v): v is number => v !== null);
-    const slaMediaMin = slaValues.length > 0 ? Math.round(slaValues.reduce((a, b) => a + b, 0) / slaValues.length) : 0;
-    const visitasMarcadas = meusLeads.filter(l => l.status === 'visita_marcada').length;
-    const vendas = meusLeads.filter(l => l.status === 'venda').length;
-    const totalDistribuidos = meusLeads.length;
-    const taxaConversao = totalDistribuidos > 0 ? Math.round((vendas / totalDistribuidos) * 100) : 0;
-    const slaEstourados = meusLeads.filter(isSlaEstourado).length;
+  if (loading) return <div className="cockpit-shell max-w-[1400px] mx-auto px-4 py-8 md:px-8 text-sm text-text-secondary">Carregando sua carteira...</div>;
 
-    // Visitas agendadas hoje
-    const visitasHoje = meusLeads.filter(l => {
-        if (!l.dataVisita) return false;
-        const v = new Date(l.dataVisita);
-        return v.toDateString() === today.toDateString();
-    });
+  return <div className="cockpit-shell max-w-[1400px] mx-auto px-4 py-6 md:px-8 md:py-8 space-y-8">
+    <section className="flex flex-col lg:flex-row lg:items-end justify-between gap-5"><div><p className="mono text-[10px] uppercase tracking-[.2em] text-[#7869c9] mb-2">Operação ao vivo</p><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-[#eeeafd] text-[#5c4eaa] flex items-center justify-center font-bold">{initials}</div><div><h1 className="text-[28px] md:text-[32px] leading-tight font-extrabold tracking-[-.04em]">Olá, {profile?.nome?.split(' ')[0] || 'corretor'}.</h1><p className="text-sm text-text-secondary mt-1">Você tem <strong className="text-text-primary">{metrics.active} leads ativos</strong>. Comece pelo que precisa de resposta agora.</p></div></div></div><button onClick={() => setCurrentPage('meus-leads')} className="h-10 px-4 rounded-lg bg-[#7869c9] text-white text-xs font-bold flex items-center gap-2 hover:bg-[#5c4eaa] focus-ring"><UsersRound size={15} /> Ver carteira</button></section>
+    {error && <section className="soft-panel p-4 border-red-200 bg-red-50 text-sm text-red-700">Não foi possível carregar sua carteira: {error}</section>}
+    <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">{metricsCards.map(({ label, value, helper, icon: Icon, tone }) => <div key={label} className="soft-panel p-4"><div className="flex items-center justify-between"><p className="text-[10px] mono uppercase tracking-[.13em] text-text-muted">{label}</p><Icon size={16} className={tone} /></div><p className="text-2xl font-extrabold mt-3">{value}</p><p className="text-[11px] text-text-secondary mt-1">{helper}</p></div>)}</section>
+    {metrics.breached.length > 0 && <section className="soft-panel p-4 border-warning/30 bg-warning-bg flex items-center gap-3"><AlertCircle size={18} className="text-warning shrink-0" /><p className="text-sm text-warning/90"><strong>{metrics.breached.length}</strong> lead{metrics.breached.length > 1 ? 's passaram' : ' passou'} do SLA de {SLA_MINUTES} minutos sem primeiro contato.</p></section>}
+    <section className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-5 items-start"><div className="soft-panel p-5"><div className="flex items-start justify-between gap-4 mb-5"><div><p className="mono text-[10px] uppercase tracking-[.16em] text-text-muted">Prioridade operacional</p><h2 className="text-lg font-extrabold mt-1">Atenda estes leads primeiro</h2></div><AlertCircle size={18} className="text-alert mt-1" /></div>{priorityLeads.length ? <div className="space-y-2">{priorityLeads.map(lead => <PriorityLead key={lead.id} lead={lead} onOpen={openLead} />)}</div> : <p className="rounded-xl border border-dashed border-border p-5 text-sm text-text-secondary">Nenhum lead pendente no momento.</p>}<button onClick={() => setCurrentPage('meus-leads')} className="mt-4 text-sm text-brand font-bold hover:underline flex items-center gap-1 focus-ring">Ver carteira completa <ArrowRight size={14} /></button></div><aside className="soft-panel p-5"><div className="flex items-start justify-between gap-3"><div><p className="mono text-[10px] uppercase tracking-[.16em] text-[#7869c9]">Ritmo operacional</p><h2 className="text-lg font-extrabold mt-1">Primeiro atendimento</h2><p className="text-[11px] text-text-secondary mt-1">Métrica baseada nos atendimentos já registrados.</p></div><Target size={18} className="text-[#7869c9]" /></div><div className="flex justify-between mt-5 text-[11px]"><span className="font-bold">{metrics.responded} respondido{metrics.responded === 1 ? '' : 's'}</span><span className="text-text-secondary">{mine.length} distribuídos</span></div><div className="h-2 rounded-full bg-bg mt-2 overflow-hidden"><div className="h-full rounded-full bg-[#7869c9]" style={{ width: `${mine.length ? Math.round(metrics.responded / mine.length * 100) : 0}%` }} /></div><p className="text-[11px] text-text-secondary mt-2">{mine.length ? `${Math.round(metrics.responded / mine.length * 100)}% da carteira com primeiro atendimento.` : 'Os próximos leads distribuídos aparecerão aqui.'}</p></aside></section>
+  </div>;
+}
 
-    const pontos = corretor?.pontos ?? 0;
-
-    // XP level system
-    const nivel = pontos >= 500 ? 'Black' : pontos >= 300 ? 'Ouro' : pontos >= 150 ? 'Prata' : 'Bronze';
-    const nivelColor = pontos >= 500 ? 'text-lvl-black' : pontos >= 300 ? 'text-lvl-gold' : pontos >= 150 ? 'text-lvl-silver' : 'text-lvl-bronze';
-    const proximoNivel = pontos >= 500 ? 500 : pontos >= 300 ? 500 : pontos >= 150 ? 300 : 150;
-    const progressoNivel = Math.min(Math.round((pontos / proximoNivel) * 100), 100);
-
-    return (
-        <div className="space-y-6">
-            {/* Hero de boas-vindas */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-accent via-brand to-emerald-400 p-6 text-white shadow-lg shadow-brand/20">
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.3)_1px,transparent_0)] bg-[length:24px_24px]" />
-                <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div>
-                        <p className="text-white/70 text-sm font-medium">Bem-vindo de volta 👋</p>
-                        <h1 className="text-2xl font-bold mt-0.5">{corretor?.nome ?? 'Corretor'}</h1>
-                        <div className="flex items-center gap-2 mt-2">
-                            <Star size={14} className={nivelColor} fill="currentColor" />
-                            <span className={`text-sm font-semibold ${nivelColor}`}>Nível {nivel}</span>
-                            <span className="text-white/50">·</span>
-                            <span className="text-sm text-white/80">{pontos} pts</span>
-                        </div>
-                    </div>
-                    <div className="shrink-0 text-right">
-                        <div className="text-xs text-white/60 mb-1">Progresso para próximo nível</div>
-                        <div className="w-36 h-2 bg-white/20 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-white rounded-full transition-all duration-700"
-                                style={{ width: `${progressoNivel}%` }}
-                            />
-                        </div>
-                        <div className="text-xs text-white/60 mt-1">{pontos}/{proximoNivel} pts</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* KPIs */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Leads Ativos</p>
-                        <Zap size={16} className="text-brand" />
-                    </div>
-                    <p className="text-3xl font-light">{leadsAtivos}</p>
-                    <p className="text-xs text-text-muted mt-1">em atendimento</p>
-                </Card>
-                <Card className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">SLA Médio</p>
-                        <Clock size={16} className={slaMediaMin > 10 ? 'text-alert' : 'text-success'} />
-                    </div>
-                    <p className={`text-3xl font-bold ${slaMediaMin > 10 ? 'text-alert' : ''}`}>{slaMediaMin}m</p>
-                    <p className={`text-xs mt-1 ${slaEstourados > 0 ? 'text-alert' : 'text-text-muted'}`}>
-                        {slaEstourados > 0 ? `${slaEstourados} SLA estourado${slaEstourados > 1 ? 's' : ''}` : 'Dentro do limite'}
-                    </p>
-                </Card>
-                <Card className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Visitas Marcadas</p>
-                        <Calendar size={16} className="text-info" />
-                    </div>
-                    <p className="text-3xl font-light">{visitasMarcadas}</p>
-                    <p className="text-xs text-text-muted mt-1">{visitasHoje.length > 0 ? `${visitasHoje.length} hoje` : 'nenhuma hoje'}</p>
-                </Card>
-                <Card className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-text-muted font-medium uppercase tracking-wider">Taxa de Conversão</p>
-                        <TrendingUp size={16} className="text-brand" />
-                    </div>
-                    <p className="text-3xl font-light">{taxaConversao}%</p>
-                    <p className="text-xs text-text-muted mt-1">{vendas} venda{vendas !== 1 ? 's' : ''} no período</p>
-                </Card>
-            </div>
-
-            {/* Corpo 2 colunas em desktop */}
-            <div className="lg:grid lg:grid-cols-3 lg:gap-6 space-y-6 lg:space-y-0">
-
-                {/* Coluna principal (2/3): ações e leads */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Leads Prioritários */}
-                    <div>
-                        <div className="flex items-center gap-2 mb-3">
-                            <AlertCircle size={18} className="text-alert" />
-                            <h3 className="font-bold text-base">Leads que Precisam de Atenção</h3>
-                        </div>
-                        <PriorityLeadList />
-                    </div>
-
-                    {/* Meta Semanal */}
-                    <Card className="p-5">
-                        <div className="flex items-center gap-2 mb-4">
-                            <Target size={18} className="text-brand" />
-                            <h3 className="font-semibold text-base">Meta Semanal</h3>
-                        </div>
-                        <div className="flex items-center justify-between text-sm mb-2">
-                            <span className="text-text-muted">Progresso</span>
-                            <span className="font-bold text-brand">{performanceMetas.weeklyGoal}%</span>
-                        </div>
-                        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-brand to-brand/70 rounded-full transition-all duration-700"
-                                style={{ width: `${performanceMetas.weeklyGoal}%` }}
-                            />
-                        </div>
-                        <div className="flex justify-between mt-3 text-xs text-text-muted">
-                            <span>{performanceMetas.tasksCompleted} tarefas completas</span>
-                            <span>{performanceMetas.tasksPending} pendentes</span>
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Coluna lateral (1/3): campanha, visitas e sugestões */}
-                <div className="space-y-6">
-                    {/* Campanha Ativa */}
-                    <CampaignWidget
-                        campanha={campanhaMock}
-                        currentPontos={pontos}
-                        enterpriseName="Residencial Aurora"
-                        developerName="Construtora Horizonte"
-                    />
-
-                    {/* Visitas de Hoje */}
-                    {visitasHoje.length > 0 && (
-                        <Card className="p-5">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Calendar size={18} className="text-violet-500" />
-                                <h3 className="font-semibold text-base">Visitas de Hoje</h3>
-                                <span className="text-xs bg-violet-50 text-violet-600 font-bold px-2 py-0.5 rounded-full">{visitasHoje.length}</span>
-                            </div>
-                            <div className="space-y-3">
-                                {visitasHoje.map(lead => (
-                                    <div key={lead.id} className="flex items-center justify-between p-3 rounded-xl bg-violet-50/50 border border-violet-100">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-xs font-bold text-violet-700">
-                                                {lead.nome.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-sm">{lead.nome}</p>
-                                                <p className="text-xs text-text-muted">
-                                                    {lead.dataVisita ? new Date(lead.dataVisita).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '—'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                    )}
-
-                    {/* Sugestões inteligentes */}
-                    <SmartSuggestions suggestions={smartSuggestions} />
-                </div>
-            </div>
-        </div>
-    );
+function PriorityLead({ lead, onOpen }: { lead: Lead; onOpen: (id: string) => void }) {
+  const pending = lead.status === 'novo' && !lead.firstResponseAt;
+  return <button onClick={() => onOpen(lead.id)} className="w-full rounded-xl border border-border p-3 flex items-center gap-3 text-left hover:border-brand/30 hover:bg-brand/5 transition-colors focus-ring"><div className="w-10 h-10 rounded-full bg-primary-soft text-brand flex items-center justify-center shrink-0 text-sm font-bold">{lead.nome.slice(0, 2).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="text-sm font-bold truncate">{lead.nome}</p><p className="text-[11px] text-text-secondary flex items-center gap-1"><Clock3 size={12} />{pending ? `Novo lead · ${waitingMinutes(lead)} min aguardando contato` : `Etapa atual · ${statusLabels[lead.status as LeadStatus]}`}</p></div><span className="text-[11px] font-bold text-brand bg-primary-soft px-2 py-1 rounded-full">{statusLabels[lead.status]}</span><ArrowRight size={15} className="text-text-muted" /></button>;
 }

@@ -3,7 +3,7 @@ import { Megaphone, Plus, BellRing, Search, Calendar, ChevronRight } from 'lucid
 import { avisosGlobais, type Aviso } from '../../data/mockData';
 
 export function AvisosIncorporadora() {
-    const [avisos, setAvisos] = useState<Aviso[]>(avisosGlobais);
+    const [avisos] = useState<Aviso[]>(avisosGlobais);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
