@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Building2, LoaderCircle, Save, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Building2, CheckCircle2, ChevronDown, ChevronRight, Clock, Info, LoaderCircle, PauseCircle, PlayCircle, Settings, Shuffle, Users, X, ArrowDown, ArrowUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { cn } from '../../lib/utils';
 import type { Profile } from '../../context/AuthContext';
 
 type Empreendimento = { id: string; nome: string; gestora_id: string | null };
@@ -10,95 +11,59 @@ type Corretor = { id: string; nome: string; ativo: boolean };
 type Imobiliaria = { id: string; organizacao_id: string; nome: string; ativo: boolean };
 type Parceiro = { empreendimento_id: string; organizacao_id: string; imobiliaria_id: string | null; tipo: 'gestora' | 'imobiliaria'; ativo: boolean };
 type Bloco = { id?: string; empreendimento_id: string; tipo: 'house' | 'imobiliaria'; corretor_id: string | null; imobiliaria_id: string | null; ordem: number; ativo: boolean };
-type Dados = { empreendimentos: Empreendimento[]; house: Corretor[]; imobiliarias: Imobiliaria[]; parceiros: Parceiro[]; blocos: Bloco[] };
+type Fila = { empreendimento_id: string; corretor_id: string; leads_recebidos: number; ultimo_lead: string | null };
+type Atribuicao = { id: string; nome: string; criado_em: string; empreendimento_id: string; corretor_id: string | null; corretor_nome: string | null };
+type Dados = { empreendimentos: Empreendimento[]; house: Corretor[]; imobiliarias: Imobiliaria[]; parceiros: Parceiro[]; blocos: Bloco[]; fila: Fila[]; atribuicoes: Atribuicao[] };
 
-const empty: Dados = { empreendimentos: [], house: [], imobiliarias: [], parceiros: [], blocos: [] };
+const empty: Dados = { empreendimentos: [], house: [], imobiliarias: [], parceiros: [], blocos: [], fila: [], atribuicoes: [] };
+
+function timeAgo(iso: string) {
+  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (minutes < 60) return `${Math.max(minutes, 0)}min`;
+  if (minutes < 1440) return `${Math.floor(minutes / 60)}h`;
+  return `${Math.floor(minutes / 1440)}d`;
+}
+
+type Entry = { id: string; tipo: 'house' | 'imobiliaria'; corretorId: string | null; imobiliariaId: string | null; ativo: boolean };
+
+function GestoraFilaModal({ empNome, entries: initialEntries, house, imobiliarias, onClose, onSave }: { empNome: string; entries: Entry[]; house: Corretor[]; imobiliarias: Imobiliaria[]; onClose: () => void; onSave: (entries: Entry[]) => void }) {
+  const [entries, setEntries] = useState(initialEntries.map(entry => ({ ...entry })));
+  const [novoTipo, setNovoTipo] = useState<'house' | 'imobiliaria'>('house');
+  const [novoId, setNovoId] = useState('');
+  const ativos = entries.filter(entry => entry.ativo);
+  const inativos = entries.filter(entry => !entry.ativo);
+  const label = (entry: Entry) => entry.tipo === 'house' ? house.find(item => item.id === entry.corretorId)?.nome || 'Corretor da House' : imobiliarias.find(item => item.id === entry.imobiliariaId)?.nome || 'Imobiliária parceira';
+  const toggle = (id: string) => setEntries(current => current.map(entry => entry.id === id ? { ...entry, ativo: !entry.ativo } : entry));
+  const move = (id: string, direction: -1 | 1) => setEntries(current => {
+    const active = current.filter(entry => entry.ativo); const index = active.findIndex(entry => entry.id === id); const target = index + direction;
+    if (index < 0 || target < 0 || target >= active.length) return current;
+    [active[index], active[target]] = [active[target], active[index]];
+    return [...active, ...current.filter(entry => !entry.ativo)];
+  });
+  const add = () => {
+    if (!novoId || entries.some(entry => entry.tipo === novoTipo && (novoTipo === 'house' ? entry.corretorId === novoId : entry.imobiliariaId === novoId))) return;
+    setEntries(current => [...current, { id: `${novoTipo}-${novoId}`, tipo: novoTipo, corretorId: novoTipo === 'house' ? novoId : null, imobiliariaId: novoTipo === 'imobiliaria' ? novoId : null, ativo: true }]); setNovoId('');
+  };
+  const Row = ({ entry, index, paused = false }: { entry: Entry; index: number; paused?: boolean }) => <div className={cn('flex items-center gap-3 py-3 px-3 rounded-xl border', entry.ativo ? 'border-border bg-transparent' : 'border-border/40 bg-black/[0.02] opacity-70')}>
+    <div className="flex flex-col gap-0.5 w-4">{!paused && <><button onClick={() => move(entry.id, -1)} disabled={index === 0} className={cn('p-0.5 rounded text-text-muted', index === 0 ? 'opacity-20' : 'hover:bg-black/10')}><ArrowUp size={11} /></button><button onClick={() => move(entry.id, 1)} disabled={index === ativos.length - 1} className={cn('p-0.5 rounded text-text-muted', index === ativos.length - 1 ? 'opacity-20' : 'hover:bg-black/10')}><ArrowDown size={11} /></button></>}</div>
+    <span className={cn('text-sm font-bold w-5 text-center', paused ? 'text-text-muted' : 'text-brand')}>{paused ? '—' : index + 1}</span>
+    <div className={cn('w-9 h-9 rounded-full flex items-center justify-center shrink-0', entry.tipo === 'house' ? 'bg-brand/10 text-brand' : 'bg-amber-50 text-amber-700')}>{entry.tipo === 'house' ? <Users size={16} /> : <Building2 size={16} />}</div>
+    <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><span className="text-sm font-medium truncate">{label(entry)}</span><span className={cn('text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wide shrink-0', entry.tipo === 'house' ? 'bg-brand/10 text-brand' : 'bg-amber-50 text-amber-700')}>{entry.tipo === 'house' ? 'House' : 'Parceira'}</span></div><p className="text-[10px] text-text-muted mt-1">{entry.tipo === 'house' ? 'Ordem controlada pela Gestora' : 'Bloco; ordem dos corretores fica na imobiliária'}</p></div>
+    <button onClick={() => toggle(entry.id)} className={cn('shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border font-medium', entry.ativo ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-green-200 bg-green-50 text-green-700')}>{entry.ativo ? <><PauseCircle size={13} />Remover</> : <><PlayCircle size={13} />Adicionar</>}</button>
+  </div>;
+  return <><div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} /><div className="fixed inset-x-4 top-8 bottom-8 sm:inset-auto sm:right-0 sm:top-0 sm:bottom-0 sm:w-[480px] bg-bg z-50 flex flex-col shadow-2xl sm:rounded-none rounded-2xl overflow-hidden border border-border"><div className="p-5 border-b border-border shrink-0"><div className="flex items-start justify-between"><div><p className="text-xs text-text-muted uppercase tracking-wider font-medium mb-1">Gerenciar distribuição</p><h2 className="font-bold text-lg leading-tight">{empNome}</h2><p className="text-sm text-text-muted mt-0.5">A Gestora ordena a House e os blocos parceiros</p></div><button onClick={onClose} className="p-2 rounded-lg hover:bg-black/5 text-text-muted"><X size={20} /></button></div><div className="mt-4 flex items-end gap-2"><div className="flex-1"><label className="text-[10px] text-text-muted uppercase">Adicionar na fila</label><div className="flex gap-2 mt-1"><select className="input text-xs h-9" value={novoTipo} onChange={event => { setNovoTipo(event.target.value as 'house' | 'imobiliaria'); setNovoId(''); }}><option value="house">House</option><option value="imobiliaria">Imobiliária parceira</option></select><select className="input text-xs h-9 flex-1" value={novoId} onChange={event => setNovoId(event.target.value)}><option value="">Selecionar...</option>{(novoTipo === 'house' ? house : imobiliarias).map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></div></div><Button variant="secondary" className="h-9 text-xs" onClick={add}>Adicionar</Button></div></div><div className="flex-1 overflow-y-auto p-4 space-y-6"><div><p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2"><CheckCircle2 size={12} className="text-green-500" />Fila ativa ({ativos.length})</p><div className="space-y-2">{ativos.map((entry, index) => <Row key={entry.id} entry={entry} index={index} />)}{ativos.length === 0 && <p className="text-sm text-text-muted text-center py-6">Nenhuma House ou parceira na fila</p>}</div></div>{inativos.length > 0 && <div><p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2"><PauseCircle size={12} className="text-slate-400" />Fora da fila ({inativos.length})</p><div className="space-y-2">{inativos.map((entry, index) => <Row key={entry.id} entry={entry} index={index} paused />)}</div></div>}</div><div className="p-4 border-t border-border bg-bg shrink-0 flex gap-2"><Button variant="secondary" className="flex-1 h-10" onClick={onClose}>Cancelar</Button><Button className="flex-1 h-10" onClick={() => { onSave(entries); onClose(); }}>Salvar fila</Button></div></div></>;
+}
 
 export function DistribuicaoLive({ authProfile }: { authProfile: Profile | null }) {
-  const [dados, setDados] = useState<Dados>(empty);
-  const [empreendimentoId, setEmpreendimentoId] = useState('');
-  const [blocos, setBlocos] = useState<Bloco[]>([]);
-  const [parceiros, setParceiros] = useState<Parceiro[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
+  const [dados, setDados] = useState<Dados>(empty); const [expandedEmp, setExpandedEmp] = useState<string | null>(null); const [editingEmpId, setEditingEmpId] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [message, setMessage] = useState<string | null>(null);
   const canManage = Boolean(authProfile?.is_superadmin || authProfile?.role === 'gestora_lancamentos');
-  const selectedPartners = useMemo(() => new Set(parceiros.filter(p => p.ativo && p.imobiliaria_id).map(p => p.imobiliaria_id!)), [parceiros]);
-
-  async function load() {
-    setLoading(true); setMessage(null);
-    const { data, error } = await supabase.rpc('listar_distribuicao_operacao');
-    if (error) { setMessage(error.message); setLoading(false); return; }
-    const next = (data || empty) as Dados;
-    setDados(next);
-    const first = empreendimentoId && next.empreendimentos.some(item => item.id === empreendimentoId) ? empreendimentoId : next.empreendimentos[0]?.id || '';
-    setEmpreendimentoId(first);
-    setLoading(false);
-  }
+  async function load() { setLoading(true); const { data, error } = await supabase.rpc('listar_distribuicao_operacao'); if (error) setMessage(error.message); else { setDados((data || empty) as Dados); setExpandedEmp(current => current || (data as Dados)?.empreendimentos[0]?.id || null); } setLoading(false); }
   useEffect(() => { void load(); }, []);
-  useEffect(() => {
-    setBlocos(dados.blocos.filter(item => item.empreendimento_id === empreendimentoId).sort((a, b) => a.ordem - b.ordem));
-    setParceiros(dados.parceiros.filter(item => item.empreendimento_id === empreendimentoId));
-  }, [dados, empreendimentoId]);
-
-  function togglePartner(imobiliariaId: string) {
-    const existing = parceiros.find(item => item.imobiliaria_id === imobiliariaId);
-    if (existing) setParceiros(items => items.map(item => item === existing ? { ...item, ativo: !item.ativo } : item));
-    else setParceiros(items => [...items, { empreendimento_id: empreendimentoId, organizacao_id: dados.imobiliarias.find(item => item.id === imobiliariaId)?.organizacao_id || '', imobiliaria_id: imobiliariaId, tipo: 'imobiliaria', ativo: true }]);
-  }
-  function addHouse(corretorId: string) {
-    if (!corretorId || blocos.some(item => item.corretor_id === corretorId)) return;
-    setBlocos(items => [...items, { empreendimento_id: empreendimentoId, tipo: 'house', corretor_id: corretorId, imobiliaria_id: null, ordem: items.length + 1, ativo: true }]);
-  }
-  function addAgency(imobiliariaId: string) {
-    if (!imobiliariaId || !selectedPartners.has(imobiliariaId) || blocos.some(item => item.imobiliaria_id === imobiliariaId)) return;
-    setBlocos(items => [...items, { empreendimento_id: empreendimentoId, tipo: 'imobiliaria', corretor_id: null, imobiliaria_id: imobiliariaId, ordem: items.length + 1, ativo: true }]);
-  }
-  async function save() {
-    if (!empreendimentoId) return;
-    setSaving(true); setMessage(null);
-    try {
-      // O id da organização não vem da UI. A RPC valida o vínculo orgânico
-      // do parceiro antes de aceitar cada bloco.
-      const activeAgencyIds = parceiros.filter(item => item.ativo && item.imobiliaria_id).map(item => item.imobiliaria_id!);
-      const orgIds = parceiros.filter(item => item.ativo && item.imobiliaria_id && activeAgencyIds.includes(item.imobiliaria_id)).map(item => item.organizacao_id);
-      if (parceiros.some(item => item.ativo && !item.organizacao_id)) throw new Error('Esta imobiliária ainda não possui uma organização operacional vinculada.');
-      const { error: partnersError } = await supabase.rpc('salvar_parceiros_empreendimento', { p_empreendimento_id: empreendimentoId, p_organizacoes: orgIds });
-      if (partnersError) throw partnersError;
-      const { error: blocksError } = await supabase.rpc('salvar_blocos_distribuicao_operacao', { p_empreendimento_id: empreendimentoId, p_blocos: blocos.map((item, index) => ({ tipo: item.tipo, corretor_id: item.corretor_id, imobiliaria_id: item.imobiliaria_id, ativo: item.ativo, ordem: index + 1 })) });
-      if (blocksError) throw blocksError;
-      setMessage('Distribuição publicada. Os próximos leads usarão esta fila.');
-      await load();
-    } catch (cause) {
-      // PostgrestError is a plain object, not an Error instance. Preserve the
-      // server message so the operator can act on a real configuration issue.
-      const detail = cause && typeof cause === 'object' && 'message' in cause
-        ? String(cause.message)
-        : 'Não foi possível salvar a distribuição.';
-      setMessage(detail);
-    }
-    finally { setSaving(false); }
-  }
-
+  const entriesFor = (empId: string): Entry[] => dados.blocos.filter(item => item.empreendimento_id === empId).sort((a, b) => a.ordem - b.ordem).map(item => ({ id: item.id || `${item.tipo}-${item.corretor_id || item.imobiliaria_id}`, tipo: item.tipo, corretorId: item.corretor_id, imobiliariaId: item.imobiliaria_id, ativo: item.ativo }));
+  const label = (entry: Entry) => entry.tipo === 'house' ? dados.house.find(item => item.id === entry.corretorId)?.nome || 'Corretor da House' : dados.imobiliarias.find(item => item.id === entry.imobiliariaId)?.nome || 'Imobiliária parceira';
+  async function save(empId: string, entries: Entry[]) { setSaving(true); setMessage(null); try { const partnerIds = [...new Set(entries.filter(item => item.tipo === 'imobiliaria').map(item => item.imobiliariaId).filter(Boolean) as string[])]; const orgIds = partnerIds.map(id => dados.imobiliarias.find(item => item.id === id)?.organizacao_id).filter(Boolean) as string[]; const { error: partnerError } = await supabase.rpc('salvar_parceiros_empreendimento', { p_empreendimento_id: empId, p_organizacoes: orgIds }); if (partnerError) throw partnerError; const { error: blocksError } = await supabase.rpc('salvar_blocos_distribuicao_operacao', { p_empreendimento_id: empId, p_blocos: entries.map((item, index) => ({ tipo: item.tipo, corretor_id: item.corretorId, imobiliaria_id: item.imobiliariaId, ativo: item.ativo, ordem: index + 1 })) }); if (blocksError) throw blocksError; setMessage('Fila publicada. Os próximos leads já usarão esta ordem.'); await load(); } catch (cause) { setMessage(cause && typeof cause === 'object' && 'message' in cause ? String(cause.message) : 'Não foi possível publicar a fila.'); } finally { setSaving(false); } }
   if (loading) return <div className="p-8 flex gap-2 text-text-muted"><LoaderCircle className="animate-spin" size={18} />Carregando operação…</div>;
-  if (!canManage) return <Card className="p-6"><h1 className="text-xl font-bold">Distribuição da equipe</h1><p className="text-sm text-text-secondary mt-2">A fila da imobiliária é configurada pelo gestor da sua organização. Não há dados demonstrativos neste ambiente.</p></Card>;
-
-  return <div className="space-y-6 pb-12">
-    <div><h1 className="text-2xl font-bold">Distribuição de leads</h1><p className="text-sm text-text-secondary mt-1">House da Gestora e blocos de imobiliárias parceiras. Cada agência mantém sua própria roleta.</p></div>
-    {message && <div className="rounded-lg border border-brand/20 bg-brand/5 p-3 text-sm text-text-secondary">{message}</div>}
-    {dados.empreendimentos.length === 0 ? <Card className="p-6 text-sm text-text-muted">Nenhum empreendimento disponível para sua organização.</Card> : <>
-      <select className="input max-w-md" value={empreendimentoId} onChange={event => setEmpreendimentoId(event.target.value)}>{dados.empreendimentos.map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-5 space-y-4"><div><h2 className="font-semibold flex gap-2 items-center"><Building2 size={17} />Imobiliárias parceiras</h2><p className="text-xs text-text-muted mt-1">Somente parceiras ativas podem entrar na fila deste empreendimento.</p></div>
-          <div className="space-y-2">{dados.imobiliarias.map(item => <label key={item.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"><span>{item.nome}</span><input type="checkbox" checked={selectedPartners.has(item.id)} onChange={() => togglePartner(item.id)} /></label>)}</div>
-        </Card>
-        <Card className="p-5 space-y-4"><div><h2 className="font-semibold flex gap-2 items-center"><Users size={17} />Fila publicada</h2><p className="text-xs text-text-muted mt-1">A ordem abaixo é a roleta entre House e imobiliárias.</p></div>
-          <div className="space-y-2">{blocos.map((item, index) => { const label = item.tipo === 'house' ? dados.house.find(c => c.id === item.corretor_id)?.nome : dados.imobiliarias.find(i => i.id === item.imobiliaria_id)?.nome; return <div key={`${item.tipo}-${item.corretor_id || item.imobiliaria_id}`} className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm"><span className="font-bold text-brand">{index + 1}</span><span className="flex-1">{label || 'Vínculo indisponível'} <small className="text-text-muted">· {item.tipo === 'house' ? 'House' : 'Parceira'}</small></span><button className="text-text-muted" onClick={() => setBlocos(items => items.filter(block => block !== item))}>Remover</button></div> })}</div>
-          <div className="grid grid-cols-2 gap-2"><select className="input text-sm" defaultValue="" onChange={event => { addHouse(event.target.value); event.currentTarget.value = ''; }}><option value="">+ House</option>{dados.house.filter(item => item.ativo).map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select><select className="input text-sm" defaultValue="" onChange={event => { addAgency(event.target.value); event.currentTarget.value = ''; }}><option value="">+ Parceira</option>{dados.imobiliarias.filter(item => item.ativo && selectedPartners.has(item.id)).map(item => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></div>
-          <Button onClick={() => void save()} disabled={saving} className="w-full gap-2"><Save size={16} />{saving ? 'Publicando…' : 'Publicar distribuição'}</Button>
-        </Card>
-      </div>
-    </>}
-  </div>;
+  if (!canManage) return <Card className="p-6"><h1 className="text-xl font-bold">Distribuição da equipe</h1><p className="text-sm text-text-secondary mt-2">A fila é configurada pelo gestor da sua organização.</p></Card>;
+  const balanceamento = dados.house.map(corretor => ({ corretor, total: dados.fila.filter(item => item.corretor_id === corretor.id).reduce((sum, item) => sum + item.leads_recebidos, 0) })).sort((a, b) => b.total - a.total); const max = Math.max(...balanceamento.map(item => item.total), 1); const editingEmp = dados.empreendimentos.find(item => item.id === editingEmpId);
+  return <><div className="space-y-6"><div><h1 className="text-2xl font-bold tracking-tight">Distribuição de Leads</h1><p className="text-text-secondary text-sm mt-1">Configuração da fila — Gestora de Lançamentos</p></div>{message && <div className="rounded-lg border border-brand/20 bg-brand/5 p-3 text-sm text-text-secondary">{message}</div>}<Card className="p-4 bg-brand/5 border-brand/20"><div className="flex items-start gap-3"><Info size={16} className="text-brand shrink-0 mt-0.5" /><p className="text-sm text-text-secondary">A Gestora define a ordem dos corretores da <strong className="text-text-primary">House</strong> e a posição das <strong className="text-text-primary">imobiliárias parceiras</strong>. Cada parceira mantém a ordem dos próprios corretores.</p></div></Card><div className="grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="space-y-4"><h2 className="text-base font-semibold flex items-center gap-2"><Shuffle size={18} className="text-brand" />Fila por Empreendimento</h2>{dados.empreendimentos.map(emp => { const open = expandedEmp === emp.id; const entries = entriesFor(emp.id); const active = entries.filter(item => item.ativo); return <Card key={emp.id} className="overflow-hidden"><button className="w-full flex items-center justify-between p-4 text-left hover:bg-black/[0.02]" onClick={() => setExpandedEmp(open ? null : emp.id)}><div className="flex items-center gap-3 min-w-0"><Building2 size={16} className="text-brand shrink-0" /><div className="min-w-0"><p className="font-medium text-sm truncate">{emp.nome}</p>{active[0] && <p className="text-xs text-text-muted">Próximo: <span className="text-brand font-medium">{label(active[0])}</span></p>}</div></div><div className="flex items-center gap-3 shrink-0"><span className="text-xs text-text-muted bg-black/5 px-2 py-0.5 rounded-full">{active.length} ativo{active.length !== 1 ? 's' : ''}</span>{open ? <ChevronDown size={16} className="text-text-muted" /> : <ChevronRight size={16} className="text-text-muted" />}</div></button>{open && <div className="border-t border-border"><div className="divide-y divide-border/60">{active.map((entry, index) => <div key={entry.id} className="flex items-center gap-3 px-4 py-3"><span className="w-5 text-center text-xs font-bold text-brand">{index + 1}</span>{entry.tipo === 'house' ? <Users size={15} className="text-brand" /> : <Building2 size={15} className="text-amber-600" />}<div className="flex-1"><span className="text-sm font-medium">{label(entry)}</span><p className="text-[10px] text-text-muted">{entry.tipo === 'house' ? 'House' : 'Imobiliária parceira'}</p></div></div>)}{active.length === 0 && <p className="text-sm text-text-muted p-4 text-center">Nenhuma pessoa ou parceira ativa na fila</p>}</div><div className="p-3 bg-black/[0.02] flex justify-end"><Button variant="secondary" className="text-xs h-8 gap-2" onClick={() => setEditingEmpId(emp.id)}><Settings size={13} />Gerenciar fila</Button></div></div>}</Card>; })}</div><div className="space-y-6"><Card className="p-5"><h2 className="text-base font-semibold flex items-center gap-2 mb-4"><Users size={17} className="text-brand" />Balanceamento Geral</h2><p className="text-xs text-text-muted mb-4">Leads distribuídos por corretor da House</p><div className="space-y-3">{balanceamento.map(({ corretor, total }) => <div key={corretor.id} className="flex items-center gap-3"><div className="w-7 h-7 rounded-full bg-brand/10 flex items-center justify-center text-brand text-xs font-bold shrink-0">{corretor.nome.charAt(0)}</div><div className="flex-1 min-w-0"><div className="flex items-center justify-between mb-1"><span className="text-sm font-medium truncate">{corretor.nome}</span><span className="text-xs ml-2 shrink-0 font-semibold">{total}</span></div><div className="h-1.5 bg-black/5 rounded-full overflow-hidden"><div className="h-full rounded-full bg-brand" style={{ width: `${(total / max) * 100}%` }} /></div></div><span className={cn('text-[10px] px-1.5 py-0.5 rounded-full', corretor.ativo ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>{corretor.ativo ? 'Ativo' : 'Pausado'}</span></div>)}</div></Card><Card className="p-5"><h2 className="text-sm font-semibold flex items-center gap-2 mb-4"><Clock size={15} className="text-brand" />Últimas Atribuições</h2><div className="space-y-2">{dados.atribuicoes.map(item => <div key={item.id} className="flex items-start gap-2 py-1.5 border-b border-border/40 last:border-0"><div className="w-6 h-6 rounded-full bg-brand/10 flex items-center justify-center text-brand text-[10px] font-bold shrink-0">{item.corretor_nome?.charAt(0) || '?'}</div><div className="flex-1 min-w-0"><p className="text-xs font-medium truncate">{item.nome}</p><p className="text-[10px] text-text-muted truncate">→ {item.corretor_nome || 'Aguardando'} · {dados.empreendimentos.find(emp => emp.id === item.empreendimento_id)?.nome || 'Empreendimento'}</p></div><span className="text-[10px] text-text-muted shrink-0">{timeAgo(item.criado_em)}</span></div>)}{dados.atribuicoes.length === 0 && <p className="text-sm text-text-muted text-center py-5">Ainda não há atribuições neste escopo</p>}</div></Card></div></div></div>{editingEmp && <GestoraFilaModal empNome={editingEmp.nome} entries={entriesFor(editingEmp.id)} house={dados.house.filter(item => item.ativo)} imobiliarias={dados.imobiliarias.filter(item => item.ativo)} onClose={() => setEditingEmpId(null)} onSave={entries => { void save(editingEmp.id, entries); setEditingEmpId(null); }} />}{saving && <div className="fixed bottom-5 right-5 rounded-lg bg-text-primary text-white px-4 py-3 text-sm shadow-lg">Publicando fila…</div>}</>;
 }
